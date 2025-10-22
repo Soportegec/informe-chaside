@@ -73,162 +73,302 @@
     </div>
 
     <!-- INICIO DEL SCRIPT ACTUALIZADO -->
-    <script>
-        // --- CONSTANTES Y SELECTORES (Sin cambios) ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyCvaIT9EGIgJu1VdPyugGY30-B9pNWFeyxk6F1GVZUfmkqyDCKHQnrgluOInjuB8GW/exec';
-        const ETIQUETAS_AREAS = ["Ciencias Exactas y Agrarias", "Humanidades y Ciencias Sociales", "Artes", "Ciencias Sociales y Educación", "Ingeniería y Tecnología", "Administración y Negocios"];
-        const ETIQUETAS_CORTAS = ["C_Ciencias", "H_Humanidades", "A_Artes", "S_Educacion", "I_Ingenieria", "D_Administracion"];
-        const selectorColegio = document.getElementById('selector-colegio');
-        const btnConsultar = document.getElementById('btn-consultar');
-        const selectorEstudiante = document.getElementById('selector-estudiante');
-        const informeContainer = document.getElementById('informe-container');
-        const btnPdfIndividual = document.getElementById('btn-pdf-individual');
-        const btnPdfMasivo = document.getElementById('btn-pdf-masivo');
-        const loader = document.getElementById('loader');
+<script>
+    // --- CONSTANTES Y SELECTORES GLOBALES ---
+    const API_URL = '...'; // <-- ¡ASEGÚRATE DE PONER TU URL DE IMPLEMENTACIÓN AQUÍ!
+    const ETIQUETAS_AREAS = ["Ciencias Exactas y Agrarias", "Humanidades y Ciencias Sociales", "Artes", "Ciencias Sociales y Educación", "Ingeniería y Tecnología", "Administración y Negocios"];
+    const ETIQUETAS_CORTAS_GRAFICO = ["Ciencias", "Humanidades", "Artes", "Educación", "Ingeniería", "Administración"];
+    
+    // URL DEL LOGO OFICIAL
+    const LOGO_URL = 'https://github.com/Soportegec/informe-chaside/blob/main/menu-logo%20K.png?raw=true';
+    let LOGO_BASE64 = null; // Se cargará al inicio
 
-        // --- ¡NUEVO! CONSTANTE PARA EL LOGO ---
-        // Reemplaza la cadena de texto de abajo por la que generaste en Base64
-        const LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // <-- ¡Pega tu logo aquí!
+    const selectorColegio = document.getElementById('selector-colegio');
+    const btnConsultar = document.getElementById('btn-consultar');
+    const selectorEstudiante = document.getElementById('selector-estudiante');
+    const informeContainer = document.getElementById('informe-container');
+    const btnPdfIndividual = document.getElementById('btn-pdf-individual');
+    const btnPdfMasivo = document.getElementById('btn-pdf-masivo');
+    const loader = document.getElementById('loader');
 
-        // --- VARIABLES GLOBALES (Sin cambios) ---
-        let chartInstance = null;
-        let todosLosDatos = null;
-        let colegiosCache = [];
-        let estudiantesFiltrados = [];
+    // --- VARIABLES DE ESTADO GLOBAL ---
+    let chartInstance = null;
+    let todosLosDatos = null;
+    let estudiantesFiltrados = [];
 
-        // --- FUNCIONES DE UI Y LÓGICA DE DATOS (Sin cambios) ---
-        function mostrarLoader(mensaje) { loader.textContent = mensaje; }
-        function ocultarLoader() { loader.textContent = ''; }
-        function generarInformeHTML(estudiante) { const puntuacionMaxima = Math.max(...estudiante.puntuaciones); const indiceMaximo = estudiante.puntuaciones.indexOf(puntuacionMaxima); const areaDominanteCorta = ETIQUETAS_CORTAS[indiceMaximo]; const areaDominante = ETIQUETAS_AREAS[indiceMaximo]; let tablaHTML = '<table><tr><th>Área Vocacional</th><th>Puntuación</th></tr>'; ETIQUETAS_AREAS.forEach((area, index) => { tablaHTML += `<tr><td>${area}</td><td>${estudiante.puntuaciones[index]}</td></tr>`; }); tablaHTML += '</table>'; const descripciones = { "C_Ciencias": "Te interesan las ciencias naturales, la investigación científica y el cuidado de la salud.", "H_Humanidades": "Te apasiona comprender el comportamiento humano, la sociedad y las cuestiones legales.", "A_Artes": "Tienes un perfil creativo y artístico. Te gusta expresarte a través de diferentes medios.", "S_Educacion": "Te apasiona enseñar, formar y contribuir al desarrollo de otros.", "I_Ingenieria": "Te fascina el diseño, la construcción y la tecnología.", "D_Administracion": "Tienes habilidades para la gestión, organización y los negocios." }; return `<header><h1>INFORME DE ORIENTACIÓN VOCACIONAL</h1><p>Grupo Edúcate Colombia</p></header><div class="info-estudiante"><p><strong>Nombre:</strong> ${estudiante.nombre}</p><p><strong>Correo:</strong> ${estudiante.correo}</p><p><strong>DANE:</strong> ${estudiante.dane}</p><p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p></div><div class="resultados"><div class="tabla-puntuaciones">${tablaHTML}</div><div class="grafico-container"><canvas id="radarChart"></canvas></div></div><div class="area-dominante"><h2>TU ÁREA VOCACIONAL DOMINANTE</h2><p>Tu área de mayor interés es: <span class="area-dominante-nombre">${areaDominante}</span></p><p>Con una puntuación de: <strong>${puntuacionMaxima} de 50</strong></p><p><strong>Descripción:</strong> ${descripciones[areaDominanteCorta]}</p></div>`; }
-        function dibujarGrafico(puntuaciones) { if (chartInstance) chartInstance.destroy(); const ctx = document.getElementById('radarChart'); chartInstance = new Chart(ctx, { type: 'radar', data: { labels: ETIQUETAS_AREAS.map(l => l.split(' ')[0]), datasets: [{ data: puntuaciones, fill: true, backgroundColor: 'rgba(44, 106, 194, 0.2)', borderColor: 'rgb(44, 106, 194)', pointBackgroundColor: 'rgb(44, 106, 194)', }] }, options: { scales: { r: { suggestedMin: 0, suggestedMax: 50 } }, plugins: { legend: { display: false } } } }); }
-        async function cargarTodosDatos() { mostrarLoader('Cargando datos del sistema...'); try { const response = await fetch(`${API_URL}?endpoint=todo`); const result = await response.json(); if (result.error) throw new Error(result.error); todosLosDatos = result.data; colegiosCache = todosLosDatos.colegios; selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>'; colegiosCache.forEach(colegio => { const option = new Option(colegio.nombre, colegio.dane); selectorColegio.appendChild(option); }); mostrarLoader('✓ Datos cargados exitosamente'); setTimeout(ocultarLoader, 1500); } catch (error) { alert('Error al cargar datos: ' + error.message); ocultarLoader(); } }
-        function filtrarEstudiantesPorColegio(dane) { return todosLosDatos.estudiantes.filter(est => est.dane == dane); }
-        function buscarInformeEstudiante(correo) { return todosLosDatos.estudiantes.find(est => est.correo == correo); }
-        
-        // --- EVENTOS DE LA UI (Sin cambios) ---
-        document.addEventListener('DOMContentLoaded', cargarTodosDatos);
-        selectorColegio.addEventListener('change', () => { const dane = selectorColegio.value; btnConsultar.disabled = !dane; selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>'; selectorEstudiante.disabled = true; btnPdfIndividual.disabled = true; btnPdfMasivo.disabled = true; });
-        btnConsultar.addEventListener('click', () => { const dane = selectorColegio.value; if (!dane || !todosLosDatos) return; mostrarLoader('Filtrando estudiantes...'); estudiantesFiltrados = filtrarEstudiantesPorColegio(dane); selectorEstudiante.innerHTML = '<option value="">-- Selecciona un Estudiante --</option>'; if (estudiantesFiltrados.length === 0) { selectorEstudiante.innerHTML = '<option value="">No hay estudiantes</option>'; } else { estudiantesFiltrados.forEach(estudiante => { const option = new Option(estudiante.nombre, estudiante.correo); selectorEstudiante.appendChild(option); }); } selectorEstudiante.disabled = false; btnPdfMasivo.disabled = estudiantesFiltrados.length === 0; ocultarLoader(); });
-        selectorEstudiante.addEventListener('change', () => { const correo = selectorEstudiante.value; if (!correo || !todosLosDatos) return; mostrarLoader('Renderizando informe...'); const estudiante = buscarInformeEstudiante(correo); if (estudiante) { informeContainer.innerHTML = generarInformeHTML(estudiante); dibujarGrafico(estudiante.puntuaciones); btnPdfIndividual.disabled = false; } ocultarLoader(); });
-
-        // --- ¡NUEVO! LÓGICA DE GENERACIÓN DE PDF NATIVO Y OPTIMIZADO ---
-        
-        window.jsPDF = window.jspdf.jsPDF;
-
-        /**
-         * Genera una página del informe directamente usando comandos de jsPDF.
-         * @param {jsPDF} doc - La instancia del documento jsPDF.
-         * @param {object} estudiante - El objeto con los datos del estudiante.
-         */
-        function generarPdfNativo(doc, estudiante) {
-            // --- 1. HEADER Y LOGO ---
-            doc.addImage(LOGO_BASE64, 'PNG', 40, 25, 80, 40); // (logo, formato, x, y, ancho, alto)
-            doc.setFontSize(22);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(44, 106, 194); // Color azul
-            doc.text("INFORME DE ORIENTACIÓN VOCACIONAL", 300, 50); // (texto, x, y)
-            doc.setFontSize(14);
-            doc.setTextColor(100); // Color gris
-            doc.setFont("helvetica", "normal");
-            doc.text("Grupo Edúcate Colombia", 300, 65);
-            doc.setLineWidth(1.5);
-            doc.setDrawColor(44, 106, 194);
-            doc.line(40, 90, 740, 90); // (x1, y1, x2, y2)
-
-            // --- 2. INFORMACIÓN DEL ESTUDIANTE ---
-            doc.setFontSize(12);
-            doc.setTextColor(50);
-            doc.text(`Nombre: ${estudiante.nombre}`, 40, 110);
-            doc.text(`Correo: ${estudiante.correo}`, 40, 125);
-            doc.text(`DANE Colegio: ${estudiante.dane}`, 400, 110);
-            doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 400, 125);
-
-            // --- 3. RESULTADOS (TABLA Y GRÁFICO) ---
-            const puntuacionMaxima = Math.max(...estudiante.puntuaciones);
-            const indiceMaximo = estudiante.puntuaciones.indexOf(puntuacionMaxima);
-            const areaDominante = ETIQUETAS_AREAS[indiceMaximo];
-
-            // Datos para la tabla
-            const tablaBody = ETIQUETAS_AREAS.map((area, index) => [area, estudiante.puntuaciones[index]]);
-
-            // Usar jsPDF-AutoTable para crear la tabla
-            doc.autoTable({
-                startY: 150,
-                head: [['Área Vocacional', 'Puntuación']],
-                body: tablaBody,
-                headStyles: { fillColor: [44, 106, 194] },
-                margin: { left: 40 }
+    // --- FUNCIONES AUXILIARES ---
+    function mostrarLoader(mensaje) { loader.textContent = mensaje; }
+    function ocultarLoader() { loader.textContent = ''; }
+    
+    // Función para convertir la URL del logo a Base64 para el PDF
+    async function cargarLogoBase64() {
+        try {
+            const response = await fetch(LOGO_URL);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
             });
-            
-            // Añadir el gráfico (la única parte que usa una imagen)
-            const canvas = document.getElementById('radarChart');
-            const chartImageData = canvas.toDataURL('image/jpeg', 0.7); // Usar JPEG y comprimir
-            doc.addImage(chartImageData, 'JPEG', 420, 150, 300, 300);
+        } catch (error) {
+            console.error("No se pudo cargar el logo:", error);
+            return null;
+        }
+    }
 
-            // --- 4. ÁREA DOMINANTE Y DESCRIPCIÓN ---
-            const finalY = doc.autoTable.previous.finalY + 30; // Posición después de la tabla
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(44, 106, 194);
-            doc.text("TU ÁREA VOCACIONAL DOMINANTE", 40, finalY);
+    // --- LÓGICA DE CARGA Y FILTRADO DE DATOS (Sin cambios mayores) ---
+    async function cargarDatosIniciales() {
+        mostrarLoader('Cargando recursos y datos...');
+        try {
+            // Cargar logo y datos de la API en paralelo para más eficiencia
+            [LOGO_BASE64, todosLosDatos] = await Promise.all([
+                cargarLogoBase64(),
+                fetch(`${API_URL}?endpoint=todo`).then(res => res.json().then(json => {
+                    if (json.error) throw new Error(json.error);
+                    return json.data;
+                }))
+            ]);
             
-            doc.setFontSize(12);
-            doc.setTextColor(50);
-            doc.setFont("helvetica", "normal");
-            doc.text(`Área de mayor interés: ${areaDominante} (Puntuación: ${puntuacionMaxima} de 50)`, 40, finalY + 20);
+            selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>';
+            todosLosDatos.colegios.forEach(colegio => {
+                selectorColegio.add(new Option(colegio.nombre, colegio.dane));
+            });
 
+            mostrarLoader('✓ Datos cargados exitosamente');
+            setTimeout(ocultarLoader, 1500);
+        } catch (error) {
+            alert('Error al cargar datos: ' + error.message);
+            ocultarLoader();
+        }
+    }
+
+    function renderizarInformeEnPantalla(estudiante) {
+        // Esta función simplificada solo actualiza el gráfico, que es lo único que necesitamos
+        // para la captura de imagen del PDF. El resto del informe es visual.
+        if (chartInstance) chartInstance.destroy();
+        const canvas = document.createElement('canvas'); // Crear canvas temporal
+        informeContainer.innerHTML = '';
+        informeContainer.appendChild(canvas);
+
+        chartInstance = new Chart(canvas, {
+            type: 'radar',
+            data: {
+                labels: ETIQUETAS_CORTAS_GRAFICO,
+                datasets: [{
+                    data: estudiante.puntuaciones,
+                    fill: true,
+                    backgroundColor: 'rgba(30, 58, 95, 0.3)',
+                    borderColor: 'rgb(30, 58, 95)',
+                    pointBackgroundColor: 'rgb(30, 58, 95)',
+                }]
+            },
+            options: {
+                animation: false, // Desactivar animación para captura instantánea
+                scales: { r: { suggestedMin: 0, suggestedMax: 50 } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+    
+    // --- MOTOR DE GENERACIÓN DE PDF ---
+    window.jsPDF = window.jspdf.jsPDF;
+
+    function generarPaginaPdf(doc, estudiante, colegioNombre) {
+        const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
+
+        // --- DIBUJAR HEADER ---
+        doc.setFillColor('#46B4A8');
+        doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
+        if (LOGO_BASE64) doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50);
+        doc.setTextColor('white');
+        doc.setFont('Montserrat', 'bold');
+        doc.setFontSize(20);
+        doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+        doc.setFont('Montserrat', 'normal');
+        doc.setFontSize(12);
+        doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
+
+        // --- DIBUJAR INFO ESTUDIANTE ---
+        doc.setTextColor('#333');
+        doc.setFontSize(11);
+        doc.setFont('Montserrat', 'bold');
+        doc.text('Nombre del estudiante:', 40, 110);
+        doc.text('Correo electrónico:', 40, 125);
+        doc.text('DANE Colegio:', 550, 110);
+        doc.text('Fecha:', 550, 125);
+        doc.setFont('Montserrat', 'normal');
+        doc.text(estudiante.nombre, 180, 110);
+        doc.text(estudiante.correo, 180, 125);
+        doc.text(estudiante.dane, 650, 110);
+        doc.text(new Date().toLocaleDateString('es-ES'), 650, 125);
+        
+        // --- COLUMNA IZQUIERDA ---
+        // Tabla de puntuaciones
+        const tablaBody = ETIQUETAS_AREAS.map((area, i) => [area, estudiante.puntuaciones[i]]);
+        doc.autoTable({
+            startY: 150,
+            head: [['Área vocacional', 'Puntuación']],
+            body: tablaBody,
+            headStyles: { fillColor: '#1E3A5F', font: 'Montserrat', fontStyle: 'bold' },
+            bodyStyles: { font: 'Montserrat', fontSize: 10 },
+            columnStyles: { 1: { halign: 'center' } },
+            margin: { left: 40 },
+            tableWidth: 350
+        });
+
+        // Titled sections (Área, Descripción)
+        let finalY = doc.autoTable.previous.finalY + 20;
+        doc.setFillColor('#1E3A5F');
+        doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
+        doc.setTextColor('white');
+        doc.setFontSize(12);
+        doc.setFont('Montserrat', 'bold');
+        doc.text('Tu área vocacional dominante:', 50, finalY + 15);
+        
+        doc.setDrawColor('#E0E0E0');
+        doc.roundedRect(40, finalY + 22, 350, 30, 3, 3, 'D');
+        doc.setTextColor('#333');
+        doc.setFont('Montserrat', 'normal');
+        doc.setFontSize(10);
+        doc.text(`Área de mayor interés: `, 50, finalY + 40);
+        doc.setFont('Montserrat', 'bold');
+        doc.text(`${areaDominante} (Puntuación: ${estudiante.puntuacionMaxima} de 50)`, 155, finalY + 40);
+        finalY += 62;
+
+        doc.setFillColor('#1E3A5F');
+        doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
+        doc.setTextColor('white');
+        doc.setFontSize(12);
+        doc.setFont('Montserrat', 'bold');
+        doc.text('Descripción:', 50, finalY + 15);
+
+        doc.setDrawColor('#E0E0E0');
+        const descLines = doc.splitTextToSize(estudiante.descripcion, 330);
+        const descHeight = descLines.length * 12 + 15;
+        doc.roundedRect(40, finalY + 22, 350, descHeight, 3, 3, 'D');
+        doc.setTextColor('#333');
+        doc.setFont('Montserrat', 'normal');
+        doc.setFontSize(10);
+        doc.text(descLines, 50, finalY + 37);
+
+        // --- COLUMNA DERECHA ---
+        // Gráfico
+        const chartImage = chartInstance.toBase64Image('image/jpeg', 0.8);
+        doc.setDrawColor('#E0E0E0');
+        doc.roundedRect(430, 150, 350, 250, 3, 3, 'D');
+        doc.addImage(chartImage, 'JPEG', 440, 155, 330, 240);
+
+        // Carreras sugeridas
+        let startYCarreras = 430;
+        doc.setFillColor('#1E3A5F');
+        doc.roundedRect(430, startYCarreras, 350, 22, 3, 3, 'F');
+        doc.setTextColor('white');
+        doc.setFontSize(12);
+        doc.setFont('Montserrat', 'bold');
+        doc.text('Carreras sugeridas:', 440, startYCarreras + 15);
+
+        doc.setDrawColor('#E0E0E0');
+        const carrerasHeight = Math.ceil(estudiante.carreras.length / 2) * 15 + 15;
+        doc.roundedRect(430, startYCarreras + 22, 350, carrerasHeight, 3, 3, 'D');
+        doc.setTextColor('#333');
+        doc.setFont('Montserrat', 'normal');
+        doc.setFontSize(10);
+        estudiante.carreras.forEach((carrera, index) => {
+            const x = (index % 2 === 0) ? 450 : 610;
+            const y = startYCarreras + 40 + Math.floor(index / 2) * 15;
+            doc.text(`• ${carrera}`, x, y);
+        });
+
+        // --- FOOTER ---
+        doc.setFillColor('#1E3A5F');
+        doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
+        doc.setTextColor('white');
+        doc.setFontSize(9);
+        const footerText = "En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.";
+        doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 35, { align: 'center', maxWidth: 700 });
+    }
+
+    // --- EVENTOS DE LA UI ---
+    document.addEventListener('DOMContentLoaded', cargarDatosIniciales);
+    
+    selectorColegio.addEventListener('change', () => {
+        btnConsultar.disabled = !selectorColegio.value;
+        selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>';
+        selectorEstudiante.disabled = true;
+        btnPdfIndividual.disabled = true;
+        btnPdfMasivo.disabled = true;
+        informeContainer.innerHTML = '<p>Selecciona un colegio y haz clic en "Consultar" para empezar.</p>';
+    });
+
+    btnConsultar.addEventListener('click', () => {
+        const dane = selectorColegio.value;
+        if (!dane) return;
+        estudiantesFiltrados = todosLosDatos.estudiantes.filter(est => est.dane == dane);
+        
+        selectorEstudiante.innerHTML = '<option value="">-- Selecciona un Estudiante --</option>';
+        if (estudiantesFiltrados.length > 0) {
+            estudiantesFiltrados.forEach(est => selectorEstudiante.add(new Option(est.nombre, est.correo)));
+            selectorEstudiante.disabled = false;
+            btnPdfMasivo.disabled = false;
+        } else {
+            selectorEstudiante.innerHTML = '<option value="">No hay estudiantes</option>';
+        }
+    });
+
+    selectorEstudiante.addEventListener('change', () => {
+        const correo = selectorEstudiante.value;
+        btnPdfIndividual.disabled = !correo;
+        if (correo) {
+            const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
+            renderizarInformeEnPantalla(estudiante);
+        }
+    });
+
+    btnPdfIndividual.addEventListener('click', async () => {
+        const correo = selectorEstudiante.value;
+        if (!correo) return;
+        mostrarLoader('Generando PDF...');
+
+        const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
+        const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
+        
+        // Renderizar el gráfico justo antes de generar el PDF
+        renderizarInformeEnPantalla(estudiante);
+        await new Promise(r => setTimeout(r, 100)); // Pausa para el renderizado
+
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+        generarPaginaPdf(doc, estudiante, colegioNombre);
+        doc.save(`Informe - ${estudiante.nombre}.pdf`);
+        ocultarLoader();
+    });
+
+    btnPdfMasivo.addEventListener('click', async () => {
+        if (estudiantesFiltrados.length === 0) return;
+        if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
+
+        const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+        for (let i = 0; i < estudiantesFiltrados.length; i++) {
+            const estudiante = estudiantesFiltrados[i];
+            mostrarLoader(`Generando PDF masivo (${i + 1}/${estudiantesFiltrados.length})...`);
+            
+            renderizarInformeEnPantalla(estudiante);
+            await new Promise(r => setTimeout(r, 100));
+
+            if (i > 0) doc.addPage();
+            generarPaginaPdf(doc, estudiante, colegioNombre);
         }
 
-        // --- EVENTOS DE BOTONES DE PDF (MODIFICADOS) ---
-
-        btnPdfIndividual.addEventListener('click', () => {
-            const correo = selectorEstudiante.value;
-            if (!correo) return;
-            mostrarLoader('Generando PDF optimizado...');
-            
-            const estudiante = buscarInformeEstudiante(correo);
-            
-            // Creamos el documento PDF
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-            generarPdfNativo(doc, estudiante);
-            
-            doc.save(`Informe - ${estudiante.nombre}.pdf`);
-            ocultarLoader();
-        });
-
-        btnPdfMasivo.addEventListener('click', async () => {
-            if (estudiantesFiltrados.length === 0) return;
-            if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
-
-            // Creamos un único documento PDF para todos
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-
-            for (let i = 0; i < estudiantesFiltrados.length; i++) {
-                const estudiante = estudiantesFiltrados[i];
-                mostrarLoader(`Generando PDF masivo (${i + 1} de ${estudiantesFiltrados.length}): ${estudiante.nombre}`);
-                
-                // Antes de añadir la página, renderizamos el gráfico en el HTML (fuera de la vista)
-                // para poder capturarlo.
-                informeContainer.innerHTML = generarInformeHTML(estudiante);
-                dibujarGrafico(estudiante.puntuaciones);
-                await new Promise(r => setTimeout(r, 50)); // Pequeña pausa para que Chart.js dibuje
-
-                // Si no es el primer estudiante, añadimos una nueva página
-                if (i > 0) doc.addPage();
-                
-                // Generamos la página nativa
-                generarPdfNativo(doc, estudiante);
-            }
-            
-            const nombreColegio = selectorColegio.options[selectorColegio.selectedIndex].text;
-            doc.save(`Informe Compilado - ${nombreColegio}.pdf`);
-            ocultarLoader();
-            alert('¡Generación masiva completada!');
-        });
-
-    </script>
+        doc.save(`Informes Compilados - ${colegioNombre}.pdf`);
+        ocultarLoader();
+        alert('¡Generación masiva completada!');
+    });
+</script>
     <!-- FIN DEL SCRIPT ACTUALIZADO -->
 </body>
 </html>
+
 
 
