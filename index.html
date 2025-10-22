@@ -107,25 +107,32 @@
             } catch (error) { console.error("No se pudo cargar el logo:", error); return null; }
         }
 
-        // --- LÓGICA DE CARGA Y FILTRADO (VERSIÓN CORREGIDA) ---
+        // --- LÓGICA DE CARGA Y FILTRADO (VERSIÓN CORREGIDA Y ROBUSTA) ---
         async function cargarDatosIniciales() {
             mostrarLoader('Cargando recursos y datos...');
             try {
-                const fetchDatos = fetch(`${API_URL}?endpoint=todo`)
-                    .then(res => {
-                        if (!res.ok) { throw new Error(`Error de red: ${res.statusText}`); }
-                        return res.json();
-                    })
-                    .then(json => {
-                        if (json.error) { throw new Error(json.error); }
-                        return json.data;
-                    });
+                async function fetchDatosDesdeAPI() {
+                    const response = await fetch(`${API_URL}?endpoint=todo`);
+                    if (!response.ok) {
+                        throw new Error(`Error de red: ${response.statusText}`);
+                    }
+                    const json = await response.json();
+                    if (json.error) {
+                        throw new Error(json.error);
+                    }
+                    return json.data;
+                }
                 
+                // Ejecutar ambas promesas en paralelo
                 [LOGO_BASE64, todosLosDatos] = await Promise.all([
                     cargarLogoBase64(),
-                    fetchDatos
+                    fetchDatosDesdeAPI()
                 ]);
                 
+                if (!todosLosDatos || !todosLosDatos.colegios) {
+                    throw new Error("La respuesta de la API no contiene los datos esperados.");
+                }
+
                 selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>';
                 todosLosDatos.colegios.forEach(colegio => selectorColegio.add(new Option(colegio.nombre, colegio.dane)));
 
@@ -182,24 +189,18 @@
 
         function generarPaginaPdf(doc, estudiante, colegioNombre) {
             const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
-
-            // Header
             doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
             if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50); }
             doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
             doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
             doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
             doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
-
-            // Info Estudiante
             doc.setTextColor('#333'); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
             doc.text('Nombre del estudiante:', 40, 110); doc.text('Correo electrónico:', 40, 125);
             doc.text('DANE Colegio:', 550, 110); doc.text('Fecha:', 550, 125);
             doc.setFont('helvetica', 'normal');
             doc.text(estudiante.nombre, 180, 110); doc.text(estudiante.correo, 180, 125);
             doc.text(String(estudiante.dane), 650, 110); doc.text(new Date().toLocaleDateString('es-ES'), 650, 125);
-            
-            // Columna Izquierda - Tabla
             const tablaBody = ETIQUETAS_AREAS.map((area, i) => [area, estudiante.puntuaciones[i]]);
             doc.autoTable({
                 startY: 150, head: [['Área vocacional', 'Puntuación']], body: tablaBody,
@@ -209,8 +210,6 @@
                 margin: { left: 40 }
             });
             let finalY = doc.autoTable.previous.finalY + 20;
-
-            // Columna Izquierda - Secciones con Título
             doc.setFillColor('#1E3A5F'); doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
             doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
             doc.text('Tu área vocacional dominante:', 50, finalY + 15);
@@ -219,7 +218,6 @@
             doc.text(`Área de mayor interés: `, 50, finalY + 40);
             doc.setFont('helvetica', 'bold'); doc.text(`${areaDominante} (Puntuación: ${estudiante.puntuacionMaxima} de 50)`, 155, finalY + 40);
             finalY += 62;
-
             doc.setFillColor('#1E3A5F'); doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
             doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
             doc.text('Descripción:', 50, finalY + 15);
@@ -228,8 +226,6 @@
             doc.setDrawColor('#E0E0E0'); doc.roundedRect(40, finalY + 22, 350, descHeight, 3, 3, 'D');
             doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
             doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 330 });
-
-            // Columna Derecha - Gráfico
             const chartCanvas = document.getElementById('radarChart');
             const ctx = chartCanvas.getContext('2d');
             ctx.save(); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = 'white'; ctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height); ctx.restore();
@@ -237,8 +233,6 @@
             doc.setDrawColor('#E0E0E0');
             doc.roundedRect(430, 150, 350, 250, 3, 3, 'D');
             doc.addImage(chartImage, 'JPEG', 435, 155, 340, 240);
-            
-            // Columna Derecha - Carreras
             let startYCarreras = 430;
             doc.setFillColor('#1E3A5F'); doc.roundedRect(430, startYCarreras, 350, 22, 3, 3, 'F');
             doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
@@ -251,9 +245,8 @@
                 const y = startYCarreras + 40 + Math.floor(index / 2) * 15;
                 doc.text(`• ${carrera}`, x, y);
             });
-
-            // Footer
-            doc.setFillColor('#1E3A5F'); doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
+            doc.setFillColor('#1E3A5F');
+            doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
             doc.setTextColor('white'); doc.setFontSize(9);
             const footerText = "En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.";
             doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 35, { align: 'center', maxWidth: 700 });
@@ -266,7 +259,7 @@
             btnConsultar.disabled = !selectorColegio.value;
             selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>';
             selectorEstudiante.disabled = true;
-            btnPdfIndividual.disabled = true; btnPdfMasivo = true;
+            btnPdfIndividual.disabled = true; btnPdfMasivo.disabled = true;
             informeContainer.innerHTML = '';
         });
 
@@ -296,4 +289,43 @@
 
         btnPdfIndividual.addEventListener('click', async () => {
             const correo = selectorEstudiante.value;
-            if (!correo)
+            if (!correo) return;
+            mostrarLoader('Generando PDF...');
+
+            const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
+            const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
+            
+            renderizarInformeEnPantalla(estudiante, colegioNombre);
+            await new Promise(r => setTimeout(r, 150));
+
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+            generarPaginaPdf(doc, estudiante, colegioNombre);
+            doc.save(`Informe - ${estudiante.nombre}.pdf`);
+            ocultarLoader();
+        });
+
+        btnPdfMasivo.addEventListener('click', async () => {
+            if (estudiantesFiltrados.length === 0) return;
+            if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
+
+            const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+            for (let i = 0; i < estudiantesFiltrados.length; i++) {
+                const estudiante = estudiantesFiltrados[i];
+                mostrarLoader(`Generando PDF masivo (${i + 1}/${estudiantesFiltrados.length})...`);
+                
+                renderizarInformeEnPantalla(estudiante, colegioNombre);
+                await new Promise(r => setTimeout(r, 150));
+
+                if (i > 0) doc.addPage();
+                generarPaginaPdf(doc, estudiante, colegioNombre);
+            }
+
+            doc.save(`Informes Compilados - ${colegioNombre}.pdf`);
+            ocultarLoader();
+            alert('¡Generación masiva completada!');
+        });
+    </script>
+</body>
+</html>
