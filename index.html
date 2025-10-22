@@ -74,7 +74,7 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/a/macros/educateparaelsaber.edu.co/s/AKfycbw9MzJXGdl730jpmAaUnGiOy2Qkt7WJOwQQ5D8cpl-Gb3KYx33cD6VN2NeA3urBYWh9/exec';
+        const API_URL = 'https://script.google.com/a/macros/educateparaelsaber.edu.co/s/AKfycbyZxTFB9FqlcdsXxYlGbnZ7NcDrl62VPWVlV-h9Z-0aF4SnhX2tiiJ2N-ASlfBUUzip/exec';
         const ETIQUETAS_AREAS = ["Ciencias Exactas y Agrarias", "Humanidades y Ciencias Sociales", "Artes", "Ciencias Sociales y Educación", "Ingeniería y Tecnología", "Administración y Negocios"];
         const ETIQUETAS_CORTAS = ["C_Ciencias", "H_Humanidades", "A_Artes", "S_Educacion", "I_Ingenieria", "D_Administracion"];
 
@@ -191,4 +191,5 @@
         btnPdfMasivo.addEventListener('click', async () => { if (datosEstudiantesActuales.length === 0) return; if (!confirm(`Se generará un PDF con ${datosEstudiantesActuales.length} informes. ¿Continuar?`)) return; mostrarLoader(`Generando PDF masivo (0 de ${datosEstudiantesActuales.length})...`); const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: 'letter' }); for (let i = 0; i < datosEstudiantesActuales.length; i++) { const estudiante = datosEstudiantesActuales[i]; mostrarLoader(`Generando PDF masivo (${i + 1} de ${datosEstudiantesActuales.length}): ${estudiante.nombre}`); const response = await fetch(`${API_URL}?endpoint=informe&correo=${estudiante.correo}`); const result = await response.json(); informeContainer.innerHTML = generarInformeHTML(result.data); dibujarGrafico(result.data.puntuaciones); await new Promise(r => setTimeout(r, 500)); const canvas = await html2canvas(informeContainer); const imgData = canvas.toDataURL('image/png'); const pdfWidth = doc.internal.pageSize.getWidth(); const pdfHeight = (canvas.height * pdfWidth) / canvas.width; if (i > 0) doc.addPage(); doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight); } const nombreColegio = selectorColegio.options[selectorColegio.selectedIndex].text; doc.save(`Informe Compilado - ${nombreColegio}.pdf`); ocultarLoader(); alert('¡Generación masiva completada!'); });
     </script>
 </body>
+
 </html>
