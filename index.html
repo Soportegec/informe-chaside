@@ -37,12 +37,10 @@
         #informe-visual table { width: 100%; border-collapse: collapse; font-size: 13px; }
         #informe-visual th, #informe-visual td { text-align: left; padding: 9px 12px; }
         #informe-visual th { background-color: var(--color-azul); color: white; font-weight: 600; }
-        /* AJUSTE 1: Alinear puntuación a la izquierda */
         #informe-visual td:last-child { text-align: left; font-weight: 500; }
         #informe-visual tbody tr { background-color: #F0F2F5; }
         #informe-visual .area-dominante, #informe-visual .descripcion { margin-top: 15px; }
         #informe-visual .area-dominante p { font-size: 13px; line-height: 1.5; margin: 0; }
-        /* AJUSTE 2: Justificar texto de descripción */
         #informe-visual .descripcion p { font-size: 13px; line-height: 1.5; margin: 0; text-align: justify; }
         #informe-visual .area-dominante strong { font-weight: 700; }
         #informe-visual .grafico-container { height: 330px; display: flex; align-items: center; justify-content: center; border: 1px solid #E0E0E0; border-radius: 4px; padding: 10px; margin-bottom: 15px; }
@@ -109,16 +107,23 @@
             } catch (error) { console.error("No se pudo cargar el logo:", error); return null; }
         }
 
-        // --- LÓGICA DE CARGA Y FILTRADO ---
+        // --- LÓGICA DE CARGA Y FILTRADO (VERSIÓN CORREGIDA) ---
         async function cargarDatosIniciales() {
             mostrarLoader('Cargando recursos y datos...');
             try {
+                const fetchDatos = fetch(`${API_URL}?endpoint=todo`)
+                    .then(res => {
+                        if (!res.ok) { throw new Error(`Error de red: ${res.statusText}`); }
+                        return res.json();
+                    })
+                    .then(json => {
+                        if (json.error) { throw new Error(json.error); }
+                        return json.data;
+                    });
+                
                 [LOGO_BASE64, todosLosDatos] = await Promise.all([
                     cargarLogoBase64(),
-                    fetch(`${API_URL}?endpoint=todo`).then(res => res.json()).then(json => {
-                        if (json.error) throw new Error(json.error);
-                        return json.data;
-                    }))
+                    fetchDatos
                 ]);
                 
                 selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>';
@@ -126,7 +131,10 @@
 
                 mostrarLoader('✓ Datos cargados exitosamente');
                 setTimeout(ocultarLoader, 1500);
-            } catch (error) { alert('Error al cargar datos: ' + error.message); ocultarLoader(); }
+            } catch (error) {
+                alert('Error al cargar datos: ' + error.message);
+                ocultarLoader();
+            }
         }
         
         // --- FUNCIÓN DE RENDERIZADO EN PANTALLA ---
@@ -197,7 +205,7 @@
                 startY: 150, head: [['Área vocacional', 'Puntuación']], body: tablaBody,
                 headStyles: { fillColor: '#1E3A5F', font: 'helvetica', fontStyle: 'bold' },
                 bodyStyles: { font: 'helvetica', fontSize: 10 },
-                columnStyles: { 0: { cellWidth: 280 }, 1: { cellWidth: 70, halign: 'left' } }, // AJUSTE 1
+                columnStyles: { 0: { cellWidth: 280 }, 1: { cellWidth: 70, halign: 'left' } },
                 margin: { left: 40 }
             });
             let finalY = doc.autoTable.previous.finalY + 20;
@@ -219,7 +227,7 @@
             const descHeight = descLines.length * 12 + 15;
             doc.setDrawColor('#E0E0E0'); doc.roundedRect(40, finalY + 22, 350, descHeight, 3, 3, 'D');
             doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-            doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 330 }); // AJUSTE 2
+            doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 330 });
 
             // Columna Derecha - Gráfico
             const chartCanvas = document.getElementById('radarChart');
@@ -258,7 +266,7 @@
             btnConsultar.disabled = !selectorColegio.value;
             selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>';
             selectorEstudiante.disabled = true;
-            btnPdfIndividual.disabled = true; btnPdfMasivo.disabled = true;
+            btnPdfIndividual.disabled = true; btnPdfMasivo = true;
             informeContainer.innerHTML = '';
         });
 
@@ -288,43 +296,4 @@
 
         btnPdfIndividual.addEventListener('click', async () => {
             const correo = selectorEstudiante.value;
-            if (!correo) return;
-            mostrarLoader('Generando PDF...');
-
-            const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
-            const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
-            
-            renderizarInformeEnPantalla(estudiante, colegioNombre);
-            await new Promise(r => setTimeout(r, 150));
-
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
-            generarPaginaPdf(doc, estudiante, colegioNombre);
-            doc.save(`Informe - ${estudiante.nombre}.pdf`);
-            ocultarLoader();
-        });
-
-        btnPdfMasivo.addEventListener('click', async () => {
-            if (estudiantesFiltrados.length === 0) return;
-            if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
-
-            const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
-
-            for (let i = 0; i < estudiantesFiltrados.length; i++) {
-                const estudiante = estudiantesFiltrados[i];
-                mostrarLoader(`Generando PDF masivo (${i + 1}/${estudiantesFiltrados.length})...`);
-                
-                renderizarInformeEnPantalla(estudiante, colegioNombre);
-                await new Promise(r => setTimeout(r, 150));
-
-                if (i > 0) doc.addPage();
-                generarPaginaPdf(doc, estudiante, colegioNombre);
-            }
-
-            doc.save(`Informes Compilados - ${colegioNombre}.pdf`);
-            ocultarLoader();
-            alert('¡Generación masiva completada!');
-        });
-    </script>
-</body>
-</html>
+            if (!correo)
