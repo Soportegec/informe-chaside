@@ -160,78 +160,144 @@
         window.jsPDF = window.jspdf.jsPDF;
 
         function generarPaginaPdf(doc, estudiante, colegioNombre) {
-            const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
-            doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
-            if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50); }
-            doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-            doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
-            doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
-            doc.setTextColor('#333'); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-            doc.text('Nombre del estudiante:', 40, 110); doc.text('Correo electrónico:', 40, 125);
-            doc.text('DANE Colegio:', 550, 110); doc.text('Fecha:', 550, 125);
-            doc.setFont('helvetica', 'normal');
-            doc.text(estudiante.nombre, 180, 110); doc.text(estudiante.correo, 180, 125);
-            doc.text(String(estudiante.dane), 650, 110); doc.text(new Date().toLocaleDateString('es-ES'), 650, 125);
-            const tablaBody = ETIQUETAS_AREAS.map((area, i) => [area, estudiante.puntuaciones[i]]);
-            doc.autoTable({
-                startY: 150, head: [['Área vocacional', 'Puntuación']], body: tablaBody,
-                headStyles: { fillColor: '#1E3A5F', font: 'helvetica', fontStyle: 'bold' },
-                bodyStyles: { font: 'helvetica', fontSize: 10 },
-                columnStyles: { 0: { cellWidth: 280 }, 1: { cellWidth: 70, halign: 'left' } },
-                margin: { left: 40 }
-            });
-            let finalY = doc.autoTable.previous.finalY + 20;
-
-            doc.setFillColor('#1E3A5F'); doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
-            doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
-            doc.text('Tu área vocacional dominante:', 50, finalY + 15);
-            // AJUSTE: Aumentar altura del recuadro para 2 líneas
-            doc.setDrawColor('#E0E0E0'); doc.roundedRect(40, finalY + 22, 350, 45, 3, 3, 'D'); 
-            doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-            // AJUSTE: Dibujar texto en dos líneas separadas
-            doc.text(`Área de mayor interés: `, 50, finalY + 38);
-            doc.setFont('helvetica', 'bold'); doc.text(areaDominante, 155, finalY + 38);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Puntuación obtenida: `, 50, finalY + 53);
-            doc.setFont('helvetica', 'bold'); doc.text(`${estudiante.puntuacionMaxima} de 50`, 155, finalY + 53);
-            finalY += (22 + 45 + 10); // Ajustar la posición Y para el siguiente elemento
-
-            doc.setFillColor('#1E3A5F'); doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
-            doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
-            doc.text('Descripción:', 50, finalY + 15);
-            const descLines = doc.splitTextToSize(estudiante.descripcion, 330);
-            const descHeight = descLines.length * 12 + 15;
-            doc.setDrawColor('#E0E0E0'); doc.roundedRect(40, finalY + 22, 350, descHeight, 3, 3, 'D');
-            doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-            doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 330 });
-
-            const chartCanvas = document.getElementById('radarChart');
-            const ctx = chartCanvas.getContext('2d');
-            ctx.save(); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = 'white'; ctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height); ctx.restore();
-            const chartImage = chartCanvas.toDataURL('image/jpeg', 0.8);
-            doc.setDrawColor('#E0E0E0');
-            doc.roundedRect(430, 150, 350, 250, 3, 3, 'D');
-            doc.addImage(chartImage, 'JPEG', 435, 155, 340, 240);
-            let startYCarreras = 430;
-            doc.setFillColor('#1E3A5F'); doc.roundedRect(430, startYCarreras, 350, 22, 3, 3, 'F');
-            doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
-            doc.text('Carreras sugeridas:', 440, startYCarreras + 15);
-            const carrerasHeight = Math.ceil(estudiante.carreras.length / 2) * 15 + 15;
-            doc.setDrawColor('#E0E0E0'); doc.roundedRect(430, startYCarreras + 22, 350, carrerasHeight, 3, 3, 'D');
-            doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-            estudiante.carreras.forEach((carrera, index) => {
-                const x = (index % 2 === 0) ? 450 : 610;
-                const y = startYCarreras + 40 + Math.floor(index / 2) * 15;
-                doc.text(`• ${carrera}`, x, y);
-            });
-            doc.setFillColor('#1E3A5F');
-            doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
-            doc.setTextColor('white'); doc.setFontSize(9);
-            const footerText = "En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.";
-            doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 35, { align: 'center', maxWidth: 700 });
-        }
-
+    const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
+    
+    // HEADER con color de fondo
+    doc.setFillColor(70, 180, 168); // #46B4A8
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
+    
+    // LOGO CORREGIDO - Mantener proporciones originales
+    if (LOGO_BASE64) {
+        // Dimensiones proporcionadas: 250px width en CSS
+        // Calcular altura proporcional basada en imagen original (aproximadamente 1:0.4 ratio)
+        const logoWidth = 180;
+        const logoHeight = logoWidth * 0.35; // Ajusta este ratio según tu logo real
+        doc.addImage(LOGO_BASE64, 'PNG', 40, 20, logoWidth, logoHeight);
+    }
+    
+    // Título en header
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
+    
+    // Información del estudiante
+    doc.setTextColor(51, 51, 51);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Nombre del estudiante:', 40, 110);
+    doc.text('Correo electrónico:', 40, 125);
+    doc.text('DANE Colegio:', 550, 110);
+    doc.text('Fecha:', 550, 125);
+    doc.setFont('helvetica', 'normal');
+    doc.text(estudiante.nombre, 180, 110);
+    doc.text(estudiante.correo, 180, 125);
+    doc.text(String(estudiante.dane), 650, 110);
+    doc.text(new Date().toLocaleDateString('es-ES'), 650, 125);
+    
+    // Tabla de puntuaciones
+    const tablaBody = ETIQUETAS_AREAS.map((area, i) => [area, estudiante.puntuaciones[i]]);
+    doc.autoTable({
+        startY: 150,
+        head: [['Área vocacional', 'Puntuación']],
+        body: tablaBody,
+        headStyles: { fillColor: [30, 58, 95], font: 'helvetica', fontStyle: 'bold' },
+        bodyStyles: { font: 'helvetica', fontSize: 10 },
+        columnStyles: { 0: { cellWidth: 280 }, 1: { cellWidth: 70, halign: 'left' } },
+        margin: { left: 40 }
+    });
+    
+    let finalY = doc.autoTable.previous.finalY + 20;
+    
+    // Área dominante - HEADER con bordes simples (sin rounded)
+    doc.setFillColor(30, 58, 95);
+    doc.rect(40, finalY, 350, 22, 'F'); // Sin roundedRect
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tu área vocacional dominante:', 50, finalY + 15);
+    
+    // Área dominante - CONTENIDO con bordes simples
+    doc.setDrawColor(224, 224, 224);
+    doc.setLineWidth(1);
+    doc.rect(40, finalY + 22, 350, 45, 'S'); // 'S' = stroke (solo borde)
+    doc.setTextColor(51, 51, 51);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Área de mayor interés: `, 50, finalY + 38);
+    doc.setFont('helvetica', 'bold');
+    doc.text(areaDominante, 155, finalY + 38);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Puntuación obtenida: `, 50, finalY + 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${estudiante.puntuacionMaxima} de 50`, 155, finalY + 53);
+    
+    finalY += 67 + 10;
+    
+    // Descripción - HEADER
+    doc.setFillColor(30, 58, 95);
+    doc.rect(40, finalY, 350, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Descripción:', 50, finalY + 15);
+    
+    // Descripción - CONTENIDO
+    const descLines = doc.splitTextToSize(estudiante.descripcion, 330);
+    const descHeight = descLines.length * 12 + 15;
+    doc.setDrawColor(224, 224, 224);
+    doc.rect(40, finalY + 22, 350, descHeight, 'S');
+    doc.setTextColor(51, 51, 51);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 330 });
+    
+    // Gráfico radar con fondo blanco
+    const chartCanvas = document.getElementById('radarChart');
+    const ctx = chartCanvas.getContext('2d');
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
+    ctx.restore();
+    const chartImage = chartCanvas.toDataURL('image/jpeg', 0.9);
+    
+    doc.setDrawColor(224, 224, 224);
+    doc.rect(430, 150, 350, 250, 'S');
+    doc.addImage(chartImage, 'JPEG', 435, 155, 340, 240);
+    
+    // Carreras sugeridas
+    let startYCarreras = 430;
+    doc.setFillColor(30, 58, 95);
+    doc.rect(430, startYCarreras, 350, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Carreras sugeridas:', 440, startYCarreras + 15);
+    
+    const carrerasHeight = Math.ceil(estudiante.carreras.length / 2) * 15 + 15;
+    doc.setDrawColor(224, 224, 224);
+    doc.rect(430, startYCarreras + 22, 350, carrerasHeight, 'S');
+    doc.setTextColor(51, 51, 51);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    estudiante.carreras.forEach((carrera, index) => {
+        const x = (index % 2 === 0) ? 450 : 610;
+        const y = startYCarreras + 40 + Math.floor(index / 2) * 15;
+        doc.text(`• ${carrera}`, x, y);
+    });
+    
+    // Footer
+    doc.setFillColor(30, 58, 95);
+    doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    const footerText = "En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.";
+    doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 35, { align: 'center', maxWidth: 700 });
+}
         // --- EVENTOS DE LA UI ---
         document.addEventListener('DOMContentLoaded', cargarDatosIniciales);
         
@@ -301,3 +367,4 @@
     </script>
 </body>
 </html>
+
