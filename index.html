@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Informes Vocacionales</title>
-    <!-- Librerías para gráficos y PDFs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -74,10 +74,10 @@
 
     <!-- INICIO DEL SCRIPT ACTUALIZADO -->
     <script>
+        // --- CONSTANTES Y SELECTORES (Sin cambios) ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbyCvaIT9EGIgJu1VdPyugGY30-B9pNWFeyxk6F1GVZUfmkqyDCKHQnrgluOInjuB8GW/exec';
         const ETIQUETAS_AREAS = ["Ciencias Exactas y Agrarias", "Humanidades y Ciencias Sociales", "Artes", "Ciencias Sociales y Educación", "Ingeniería y Tecnología", "Administración y Negocios"];
         const ETIQUETAS_CORTAS = ["C_Ciencias", "H_Humanidades", "A_Artes", "S_Educacion", "I_Ingenieria", "D_Administracion"];
-
         const selectorColegio = document.getElementById('selector-colegio');
         const btnConsultar = document.getElementById('btn-consultar');
         const selectorEstudiante = document.getElementById('selector-estudiante');
@@ -86,215 +86,138 @@
         const btnPdfMasivo = document.getElementById('btn-pdf-masivo');
         const loader = document.getElementById('loader');
 
+        // --- ¡NUEVO! CONSTANTE PARA EL LOGO ---
+        // Reemplaza la cadena de texto de abajo por la que generaste en Base64
+        const LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // <-- ¡Pega tu logo aquí!
+
+        // --- VARIABLES GLOBALES (Sin cambios) ---
         let chartInstance = null;
-        let todosLosDatos = null; // CACHÉ GLOBAL PARA ALMACENAR TODOS LOS DATOS
+        let todosLosDatos = null;
         let colegiosCache = [];
         let estudiantesFiltrados = [];
 
+        // --- FUNCIONES DE UI Y LÓGICA DE DATOS (Sin cambios) ---
         function mostrarLoader(mensaje) { loader.textContent = mensaje; }
         function ocultarLoader() { loader.textContent = ''; }
-
-        function generarInformeHTML(estudiante) {
-            const puntuacionMaxima = Math.max(...estudiante.puntuaciones);
-            const indiceMaximo = estudiante.puntuaciones.indexOf(puntuacionMaxima);
-            const areaDominanteCorta = ETIQUETAS_CORTAS[indiceMaximo];
-            const areaDominante = ETIQUETAS_AREAS[indiceMaximo];
-            
-            let tablaHTML = '<table><tr><th>Área Vocacional</th><th>Puntuación</th></tr>';
-            ETIQUETAS_AREAS.forEach((area, index) => {
-                tablaHTML += `<tr><td>${area}</td><td>${estudiante.puntuaciones[index]}</td></tr>`;
-            });
-            tablaHTML += '</table>';
-            
-            const descripciones = {
-                "C_Ciencias": "Te interesan las ciencias naturales, la investigación científica y el cuidado de la salud.",
-                "H_Humanidades": "Te apasiona comprender el comportamiento humano, la sociedad y las cuestiones legales.",
-                "A_Artes": "Tienes un perfil creativo y artístico. Te gusta expresarte a través de diferentes medios.",
-                "S_Educacion": "Te apasiona enseñar, formar y contribuir al desarrollo de otros.",
-                "I_Ingenieria": "Te fascina el diseño, la construcción y la tecnología.",
-                "D_Administracion": "Tienes habilidades para la gestión, organización y los negocios."
-            };
-            
-            return `
-                <header>
-                    <h1>INFORME DE ORIENTACIÓN VOCACIONAL</h1>
-                    <p>Grupo Edúcate Colombia</p>
-                </header>
-                <div class="info-estudiante">
-                    <p><strong>Nombre:</strong> ${estudiante.nombre}</p>
-                    <p><strong>Correo:</strong> ${estudiante.correo}</p>
-                    <p><strong>DANE:</strong> ${estudiante.dane}</p>
-                    <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
-                </div>
-                <div class="resultados">
-                    <div class="tabla-puntuaciones">${tablaHTML}</div>
-                    <div class="grafico-container"><canvas id="radarChart"></canvas></div>
-                </div>
-                <div class="area-dominante">
-                    <h2>TU ÁREA VOCACIONAL DOMINANTE</h2>
-                    <p>Tu área de mayor interés es: <span class="area-dominante-nombre">${areaDominante}</span></p>
-                    <p>Con una puntuación de: <strong>${puntuacionMaxima} de 50</strong></p>
-                    <p><strong>Descripción:</strong> ${descripciones[areaDominanteCorta]}</p>
-                </div>
-            `;
-        }
-
-        function dibujarGrafico(puntuaciones) {
-            if (chartInstance) chartInstance.destroy();
-            const ctx = document.getElementById('radarChart');
-            chartInstance = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ETIQUETAS_AREAS.map(l => l.split(' ')[0]),
-                    datasets: [{
-                        data: puntuaciones,
-                        fill: true,
-                        backgroundColor: 'rgba(44, 106, 194, 0.2)',
-                        borderColor: 'rgb(44, 106, 194)',
-                        pointBackgroundColor: 'rgb(44, 106, 194)',
-                    }]
-                },
-                options: {
-                    scales: { r: { suggestedMin: 0, suggestedMax: 50 } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        // CARGA INICIAL: Trae TODO de una vez para cachear los datos
-        async function cargarTodosDatos() {
-            mostrarLoader('Cargando datos del sistema...');
-            try {
-                const response = await fetch(`${API_URL}?endpoint=todo`);
-                const result = await response.json();
-                if (result.error) throw new Error(result.error);
-                
-                // Guardamos todos los datos en la caché global
-                todosLosDatos = result.data;
-                colegiosCache = todosLosDatos.colegios;
-                
-                // Llenar el selector de colegios desde la caché
-                selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>';
-                colegiosCache.forEach(colegio => {
-                    const option = new Option(colegio.nombre, colegio.dane);
-                    selectorColegio.appendChild(option);
-                });
-                
-                mostrarLoader('✓ Datos cargados exitosamente');
-                setTimeout(ocultarLoader, 1500);
-            } catch (error) {
-                alert('Error al cargar datos: ' + error.message);
-                ocultarLoader();
-            }
-        }
-
-        // Función para filtrar estudiantes localmente (SIN llamada a API)
-        function filtrarEstudiantesPorColegio(dane) {
-            return todosLosDatos.estudiantes.filter(est => est.dane == dane);
-        }
-
-        // Función para buscar un informe localmente (SIN llamada a API)
-        function buscarInformeEstudiante(correo) {
-            return todosLosDatos.estudiantes.find(est => est.correo == correo);
-        }
-
-        // --- MANEJO DE EVENTOS ---
+        function generarInformeHTML(estudiante) { const puntuacionMaxima = Math.max(...estudiante.puntuaciones); const indiceMaximo = estudiante.puntuaciones.indexOf(puntuacionMaxima); const areaDominanteCorta = ETIQUETAS_CORTAS[indiceMaximo]; const areaDominante = ETIQUETAS_AREAS[indiceMaximo]; let tablaHTML = '<table><tr><th>Área Vocacional</th><th>Puntuación</th></tr>'; ETIQUETAS_AREAS.forEach((area, index) => { tablaHTML += `<tr><td>${area}</td><td>${estudiante.puntuaciones[index]}</td></tr>`; }); tablaHTML += '</table>'; const descripciones = { "C_Ciencias": "Te interesan las ciencias naturales, la investigación científica y el cuidado de la salud.", "H_Humanidades": "Te apasiona comprender el comportamiento humano, la sociedad y las cuestiones legales.", "A_Artes": "Tienes un perfil creativo y artístico. Te gusta expresarte a través de diferentes medios.", "S_Educacion": "Te apasiona enseñar, formar y contribuir al desarrollo de otros.", "I_Ingenieria": "Te fascina el diseño, la construcción y la tecnología.", "D_Administracion": "Tienes habilidades para la gestión, organización y los negocios." }; return `<header><h1>INFORME DE ORIENTACIÓN VOCACIONAL</h1><p>Grupo Edúcate Colombia</p></header><div class="info-estudiante"><p><strong>Nombre:</strong> ${estudiante.nombre}</p><p><strong>Correo:</strong> ${estudiante.correo}</p><p><strong>DANE:</strong> ${estudiante.dane}</p><p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p></div><div class="resultados"><div class="tabla-puntuaciones">${tablaHTML}</div><div class="grafico-container"><canvas id="radarChart"></canvas></div></div><div class="area-dominante"><h2>TU ÁREA VOCACIONAL DOMINANTE</h2><p>Tu área de mayor interés es: <span class="area-dominante-nombre">${areaDominante}</span></p><p>Con una puntuación de: <strong>${puntuacionMaxima} de 50</strong></p><p><strong>Descripción:</strong> ${descripciones[areaDominanteCorta]}</p></div>`; }
+        function dibujarGrafico(puntuaciones) { if (chartInstance) chartInstance.destroy(); const ctx = document.getElementById('radarChart'); chartInstance = new Chart(ctx, { type: 'radar', data: { labels: ETIQUETAS_AREAS.map(l => l.split(' ')[0]), datasets: [{ data: puntuaciones, fill: true, backgroundColor: 'rgba(44, 106, 194, 0.2)', borderColor: 'rgb(44, 106, 194)', pointBackgroundColor: 'rgb(44, 106, 194)', }] }, options: { scales: { r: { suggestedMin: 0, suggestedMax: 50 } }, plugins: { legend: { display: false } } } }); }
+        async function cargarTodosDatos() { mostrarLoader('Cargando datos del sistema...'); try { const response = await fetch(`${API_URL}?endpoint=todo`); const result = await response.json(); if (result.error) throw new Error(result.error); todosLosDatos = result.data; colegiosCache = todosLosDatos.colegios; selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>'; colegiosCache.forEach(colegio => { const option = new Option(colegio.nombre, colegio.dane); selectorColegio.appendChild(option); }); mostrarLoader('✓ Datos cargados exitosamente'); setTimeout(ocultarLoader, 1500); } catch (error) { alert('Error al cargar datos: ' + error.message); ocultarLoader(); } }
+        function filtrarEstudiantesPorColegio(dane) { return todosLosDatos.estudiantes.filter(est => est.dane == dane); }
+        function buscarInformeEstudiante(correo) { return todosLosDatos.estudiantes.find(est => est.correo == correo); }
+        
+        // --- EVENTOS DE LA UI (Sin cambios) ---
         document.addEventListener('DOMContentLoaded', cargarTodosDatos);
+        selectorColegio.addEventListener('change', () => { const dane = selectorColegio.value; btnConsultar.disabled = !dane; selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>'; selectorEstudiante.disabled = true; btnPdfIndividual.disabled = true; btnPdfMasivo.disabled = true; });
+        btnConsultar.addEventListener('click', () => { const dane = selectorColegio.value; if (!dane || !todosLosDatos) return; mostrarLoader('Filtrando estudiantes...'); estudiantesFiltrados = filtrarEstudiantesPorColegio(dane); selectorEstudiante.innerHTML = '<option value="">-- Selecciona un Estudiante --</option>'; if (estudiantesFiltrados.length === 0) { selectorEstudiante.innerHTML = '<option value="">No hay estudiantes</option>'; } else { estudiantesFiltrados.forEach(estudiante => { const option = new Option(estudiante.nombre, estudiante.correo); selectorEstudiante.appendChild(option); }); } selectorEstudiante.disabled = false; btnPdfMasivo.disabled = estudiantesFiltrados.length === 0; ocultarLoader(); });
+        selectorEstudiante.addEventListener('change', () => { const correo = selectorEstudiante.value; if (!correo || !todosLosDatos) return; mostrarLoader('Renderizando informe...'); const estudiante = buscarInformeEstudiante(correo); if (estudiante) { informeContainer.innerHTML = generarInformeHTML(estudiante); dibujarGrafico(estudiante.puntuaciones); btnPdfIndividual.disabled = false; } ocultarLoader(); });
 
-        selectorColegio.addEventListener('change', () => {
-            const dane = selectorColegio.value;
-            btnConsultar.disabled = !dane;
-            // Limpiamos y deshabilitamos el resto de la UI hasta que se consulte
-            selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>';
-            selectorEstudiante.disabled = true;
-            btnPdfIndividual.disabled = true;
-            btnPdfMasivo.disabled = true;
-        });
-
-        btnConsultar.addEventListener('click', () => {
-            const dane = selectorColegio.value;
-            if (!dane || !todosLosDatos) return;
-            
-            mostrarLoader('Filtrando estudiantes...');
-            
-            // Filtrado INSTANTÁNEO usando la caché (sin API)
-            estudiantesFiltrados = filtrarEstudiantesPorColegio(dane);
-            
-            selectorEstudiante.innerHTML = '<option value="">-- Selecciona un Estudiante --</option>';
-            if (estudiantesFiltrados.length === 0) {
-                selectorEstudiante.innerHTML = '<option value="">No hay estudiantes</option>';
-            } else {
-                estudiantesFiltrados.forEach(estudiante => {
-                    const option = new Option(estudiante.nombre, estudiante.correo);
-                    selectorEstudiante.appendChild(option);
-                });
-            }
-            
-            selectorEstudiante.disabled = false;
-            btnPdfMasivo.disabled = estudiantesFiltrados.length === 0;
-            ocultarLoader();
-        });
-
-        selectorEstudiante.addEventListener('change', () => {
-            const correo = selectorEstudiante.value;
-            if (!correo || !todosLosDatos) return;
-            
-            mostrarLoader('Renderizando informe...');
-            
-            // Búsqueda INSTANTÁNEA usando la caché (sin API)
-            const estudiante = buscarInformeEstudiante(correo);
-            if (estudiante) {
-                informeContainer.innerHTML = generarInformeHTML(estudiante);
-                dibujarGrafico(estudiante.puntuaciones);
-                btnPdfIndividual.disabled = false;
-            }
-            
-            ocultarLoader();
-        });
-
-        // --- FUNCIONES PARA PDFs (ahora usan datos locales) ---
+        // --- ¡NUEVO! LÓGICA DE GENERACIÓN DE PDF NATIVO Y OPTIMIZADO ---
+        
         window.jsPDF = window.jspdf.jsPDF;
 
-        btnPdfIndividual.addEventListener('click', () => {
-            const nombreEstudiante = selectorEstudiante.options[selectorEstudiante.selectedIndex].text;
-            mostrarLoader('Generando PDF...');
-            
-            html2canvas(informeContainer).then(canvas => {
-                const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: 'letter' });
-                const imgData = canvas.toDataURL('image/png');
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                doc.save(`Informe - ${nombreEstudiante}.pdf`);
-                ocultarLoader();
+        /**
+         * Genera una página del informe directamente usando comandos de jsPDF.
+         * @param {jsPDF} doc - La instancia del documento jsPDF.
+         * @param {object} estudiante - El objeto con los datos del estudiante.
+         */
+        function generarPdfNativo(doc, estudiante) {
+            // --- 1. HEADER Y LOGO ---
+            doc.addImage(LOGO_BASE64, 'PNG', 40, 25, 80, 40); // (logo, formato, x, y, ancho, alto)
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(44, 106, 194); // Color azul
+            doc.text("INFORME DE ORIENTACIÓN VOCACIONAL", 300, 50); // (texto, x, y)
+            doc.setFontSize(14);
+            doc.setTextColor(100); // Color gris
+            doc.setFont("helvetica", "normal");
+            doc.text("Grupo Edúcate Colombia", 300, 65);
+            doc.setLineWidth(1.5);
+            doc.setDrawColor(44, 106, 194);
+            doc.line(40, 90, 740, 90); // (x1, y1, x2, y2)
+
+            // --- 2. INFORMACIÓN DEL ESTUDIANTE ---
+            doc.setFontSize(12);
+            doc.setTextColor(50);
+            doc.text(`Nombre: ${estudiante.nombre}`, 40, 110);
+            doc.text(`Correo: ${estudiante.correo}`, 40, 125);
+            doc.text(`DANE Colegio: ${estudiante.dane}`, 400, 110);
+            doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 400, 125);
+
+            // --- 3. RESULTADOS (TABLA Y GRÁFICO) ---
+            const puntuacionMaxima = Math.max(...estudiante.puntuaciones);
+            const indiceMaximo = estudiante.puntuaciones.indexOf(puntuacionMaxima);
+            const areaDominante = ETIQUETAS_AREAS[indiceMaximo];
+
+            // Datos para la tabla
+            const tablaBody = ETIQUETAS_AREAS.map((area, index) => [area, estudiante.puntuaciones[index]]);
+
+            // Usar jsPDF-AutoTable para crear la tabla
+            doc.autoTable({
+                startY: 150,
+                head: [['Área Vocacional', 'Puntuación']],
+                body: tablaBody,
+                headStyles: { fillColor: [44, 106, 194] },
+                margin: { left: 40 }
             });
+            
+            // Añadir el gráfico (la única parte que usa una imagen)
+            const canvas = document.getElementById('radarChart');
+            const chartImageData = canvas.toDataURL('image/jpeg', 0.7); // Usar JPEG y comprimir
+            doc.addImage(chartImageData, 'JPEG', 420, 150, 300, 300);
+
+            // --- 4. ÁREA DOMINANTE Y DESCRIPCIÓN ---
+            const finalY = doc.autoTable.previous.finalY + 30; // Posición después de la tabla
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(44, 106, 194);
+            doc.text("TU ÁREA VOCACIONAL DOMINANTE", 40, finalY);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(50);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Área de mayor interés: ${areaDominante} (Puntuación: ${puntuacionMaxima} de 50)`, 40, finalY + 20);
+
+        }
+
+        // --- EVENTOS DE BOTONES DE PDF (MODIFICADOS) ---
+
+        btnPdfIndividual.addEventListener('click', () => {
+            const correo = selectorEstudiante.value;
+            if (!correo) return;
+            mostrarLoader('Generando PDF optimizado...');
+            
+            const estudiante = buscarInformeEstudiante(correo);
+            
+            // Creamos el documento PDF
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+            generarPdfNativo(doc, estudiante);
+            
+            doc.save(`Informe - ${estudiante.nombre}.pdf`);
+            ocultarLoader();
         });
 
         btnPdfMasivo.addEventListener('click', async () => {
             if (estudiantesFiltrados.length === 0) return;
             if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
-            
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: 'letter' });
-            
-            // Itera sobre el array local, SIN llamadas a la API
+
+            // Creamos un único documento PDF para todos
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+
             for (let i = 0; i < estudiantesFiltrados.length; i++) {
                 const estudiante = estudiantesFiltrados[i];
                 mostrarLoader(`Generando PDF masivo (${i + 1} de ${estudiantesFiltrados.length}): ${estudiante.nombre}`);
                 
-                // Renderiza el informe y el gráfico
+                // Antes de añadir la página, renderizamos el gráfico en el HTML (fuera de la vista)
+                // para poder capturarlo.
                 informeContainer.innerHTML = generarInformeHTML(estudiante);
                 dibujarGrafico(estudiante.puntuaciones);
-                
-                // Pequeña pausa para asegurar que el DOM se actualice antes de la captura
-                await new Promise(r => setTimeout(r, 300));
-                
-                const canvas = await html2canvas(informeContainer);
-                const imgData = canvas.toDataURL('image/png');
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                
+                await new Promise(r => setTimeout(r, 50)); // Pequeña pausa para que Chart.js dibuje
+
+                // Si no es el primer estudiante, añadimos una nueva página
                 if (i > 0) doc.addPage();
-                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                
+                // Generamos la página nativa
+                generarPdfNativo(doc, estudiante);
             }
             
             const nombreColegio = selectorColegio.options[selectorColegio.selectedIndex].text;
@@ -302,8 +225,10 @@
             ocultarLoader();
             alert('¡Generación masiva completada!');
         });
+
     </script>
     <!-- FIN DEL SCRIPT ACTUALIZADO -->
 </body>
 </html>
+
 
