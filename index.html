@@ -166,13 +166,11 @@
     doc.setFillColor(70, 180, 168); // #46B4A8
     doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
     
-    // LOGO CORREGIDO - Mantener proporciones originales
+    // LOGO AJUSTADO - Más pequeño y más arriba
     if (LOGO_BASE64) {
-        // Dimensiones proporcionadas: 250px width en CSS
-        // Calcular altura proporcional basada en imagen original (aproximadamente 1:0.4 ratio)
-        const logoWidth = 180;
-        const logoHeight = logoWidth * 0.35; // Ajusta este ratio según tu logo real
-        doc.addImage(LOGO_BASE64, 'PNG', 40, 20, logoWidth, logoHeight);
+        const logoWidth = 150; // Reducido de 180 a 150
+        const logoHeight = logoWidth * 0.35;
+        doc.addImage(LOGO_BASE64, 'PNG', 40, 15, logoWidth, logoHeight); // Y cambiado de 20 a 15
     }
     
     // Título en header
@@ -212,18 +210,18 @@
     
     let finalY = doc.autoTable.previous.finalY + 20;
     
-    // Área dominante - HEADER con bordes simples (sin rounded)
+    // Área dominante - HEADER
     doc.setFillColor(30, 58, 95);
-    doc.rect(40, finalY, 350, 22, 'F'); // Sin roundedRect
+    doc.rect(40, finalY, 350, 22, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Tu área vocacional dominante:', 50, finalY + 15);
     
-    // Área dominante - CONTENIDO con bordes simples
+    // Área dominante - CONTENIDO
     doc.setDrawColor(224, 224, 224);
     doc.setLineWidth(1);
-    doc.rect(40, finalY + 22, 350, 45, 'S'); // 'S' = stroke (solo borde)
+    doc.rect(40, finalY + 22, 350, 45, 'S');
     doc.setTextColor(51, 51, 51);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
@@ -245,7 +243,7 @@
     doc.setFont('helvetica', 'bold');
     doc.text('Descripción:', 50, finalY + 15);
     
-    // Descripción - CONTENIDO
+    // Descripción - CONTENIDO (SIN JUSTIFICAR - alineado a la izquierda)
     const descLines = doc.splitTextToSize(estudiante.descripcion, 330);
     const descHeight = descLines.length * 12 + 15;
     doc.setDrawColor(224, 224, 224);
@@ -253,7 +251,8 @@
     doc.setTextColor(51, 51, 51);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 330 });
+    // CAMBIO CRÍTICO: Eliminado 'align: justify', ahora usa 'left' por defecto
+    doc.text(descLines, 50, finalY + 37, { align: 'justify', maxWidth: 320, lineHeightFactor: 1.3 });
     
     // Gráfico radar con fondo blanco
     const chartCanvas = document.getElementById('radarChart');
@@ -367,4 +366,5 @@
     </script>
 </body>
 </html>
+
 
