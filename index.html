@@ -52,6 +52,7 @@
     </style>
 </head>
 <body>
+    <h1 style="text-align: center; color: #1E3A5F; margin: 0 0 20px 0; font-size: 28px;">Sistema de Orientación Vocacional - TEST CHASIDE</h1>
     <div class="app-container">
         <div class="controles">
             <div class="control-grupo"><label for="selector-colegio">1. Seleccionar Colegio:</label><select id="selector-colegio"><option value="">Cargando colegios...</option></select></div>
@@ -120,7 +121,7 @@
                 <div id="informe-visual">
                     <header>
                         <img src="${LOGO_BASE64}" alt="Logo Grupo Edúcate" class="logo">
-                        <div class="titulo-informe"><h1>INFORME DE ORIENTACIÓN VOCACIONAL</h1><p>Colegio: ${colegioNombre}</p></div>
+                        <div class="titulo-informe"><h1>INFORME DE ORIENTACIÓN VOCACIONAL - TEST CHASIDE</h1><p>Colegio: ${colegioNombre}</p></div>
                     </header>
                     <section class="info-estudiante">
                         <div><p><strong>Nombre del estudiante:</strong> ${estudiante.nombre}</p><p><strong>Correo electrónico:</strong> ${estudiante.correo}</p></div>
@@ -177,7 +178,7 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
-    doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+    doc.text('INFORME DE ORIENTACIÓN VOCACIONAL - TEST CHASIDE', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
     doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
@@ -366,6 +367,7 @@
     </script>
 </body>
 </html>
+
 
 
 
