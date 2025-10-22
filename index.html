@@ -4,45 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Informes Vocacionales</title>
+    <!-- Librerías Externas -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 0; padding: 20px; background-color: #f4f7f9; color: #333; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 25px 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        .controles { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; background-color: #eef2f5; border-radius: 8px; margin-bottom: 30px; align-items: flex-end; }
+        /* Estilos generales de la página de la aplicación */
+        :root { --color-azul: #1E3A5F; --color-fondo: #F0F2F5; }
+        body { font-family: 'Montserrat', sans-serif; margin: 0; background-color: var(--color-fondo); color: #333; }
+        .app-container { max-width: 1200px; margin: 30px auto; background: white; padding: 25px 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .controles { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; background-color: var(--color-fondo); border-radius: 8px; margin-bottom: 30px; align-items: flex-end; }
         .control-grupo { display: flex; flex-direction: column; }
-        label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #555; }
+        .control-grupo label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #555; }
         select, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; background-color: white; }
-        button { cursor: pointer; background-color: #2c6ac2; color: white; border: none; font-weight: 600; transition: background-color 0.2s; }
+        button { cursor: pointer; background-color: var(--color-azul); color: white; border: none; font-weight: 600; transition: background-color 0.2s; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        button:hover:not(:disabled) { background-color: #235499; }
-        .btn-secundario { background-color: #6c757d; }
-        .btn-secundario:hover:not(:disabled) { background-color: #5a6268; }
-        #loader { font-size: 14px; color: #555; margin-left: 10px; }
-        #informe-container { border: 1px solid #ddd; padding: 30px; border-radius: 8px; min-height: 600px; }
-        header { text-align: center; margin-bottom: 40px; }
-        header h1 { margin: 0; font-size: 24px; }
-        header p { margin: 5px 0 0; color: #777; }
-        .info-estudiante, .area-dominante { margin-bottom: 40px; }
-        .info-estudiante p, .area-dominante p { margin: 8px 0; font-size: 15px; }
-        .info-estudiante strong { min-width: 150px; display: inline-block; }
-        .resultados { display: flex; gap: 40px; margin-bottom: 40px; align-items: flex-start; }
-        .tabla-puntuaciones { flex: 1; }
-        .grafico-container { flex: 1; max-width: 400px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #eee; }
-        th { font-size: 14px; color: #555; }
-        .area-dominante h2 { font-size: 20px; }
-        .area-dominante-nombre { font-size: 22px; font-weight: 700; color: #2c6ac2; }
-        @media print { body { background-color: white; padding: 0; margin: 0; } .container { box-shadow: none; border: none; padding: 0; } .controles { display: none; } @page { size: letter landscape; margin: 20px; } }
+        button:hover:not(:disabled) { background-color: #12233a; }
+        #loader { font-size: 14px; color: #555; margin-left: 10px; font-weight: 500; }
+        
+        /* Estilos del Prototipo para el Contenedor del Informe */
+        #informe-visual { width: 100%; height: 794px; display: flex; flex-direction: column; box-sizing: border-box; border: 1px solid #ccc; }
+        #informe-visual header { background-color: #46B4A8; color: white; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; }
+        #informe-visual .logo { width: 250px; height: auto; }
+        #informe-visual .titulo-informe h1 { margin: 0; font-size: 24px; font-weight: 700; }
+        #informe-visual .titulo-informe p { margin: 5px 0 0; font-size: 14px; }
+        #informe-visual .info-estudiante { display: flex; justify-content: space-between; padding: 15px 40px; }
+        #informe-visual .info-estudiante p { margin: 4px 0; font-size: 13px; }
+        #informe-visual .info-estudiante strong { font-weight: 600; }
+        #informe-visual main { display: flex; flex: 1; padding: 0 40px; gap: 40px; overflow: hidden; }
+        #informe-visual .columna-izquierda, #informe-visual .columna-derecha { display: flex; flex-direction: column; flex-basis: 50%; }
+        #informe-visual .seccion-titulo { background-color: var(--color-azul); color: white; padding: 8px 12px; font-weight: 600; font-size: 14px; border-radius: 4px 4px 0 0; }
+        #informe-visual .seccion-contenido { padding: 12px; border: 1px solid #E0E0E0; border-top: none; border-radius: 0 0 4px 4px; }
+        #informe-visual table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        #informe-visual th, #informe-visual td { text-align: left; padding: 9px 12px; }
+        #informe-visual th { background-color: var(--color-azul); color: white; font-weight: 600; }
+        #informe-visual td:last-child { text-align: center; font-weight: 500; }
+        #informe-visual tbody tr { background-color: #F0F2F5; }
+        #informe-visual .area-dominante, #informe-visual .descripcion { margin-top: 15px; }
+        #informe-visual .area-dominante p, #informe-visual .descripcion p { font-size: 13px; line-height: 1.5; margin: 0; }
+        #informe-visual .area-dominante strong { font-weight: 700; }
+        #informe-visual .grafico-container { height: 330px; display: flex; align-items: center; justify-content: center; border: 1px solid #E0E0E0; border-radius: 4px; padding: 10px; margin-bottom: 15px; }
+        #informe-visual .carreras-sugeridas ul { list-style-type: none; padding-left: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; }
+        #informe-visual .carreras-sugeridas ul li { padding-left: 1em; }
+        #informe-visual .carreras-sugeridas ul li::before { content: '•'; color: var(--color-azul); font-weight: bold; display: inline-block; width: 1em; margin-left: -1em; }
+        #informe-visual footer { background-color: var(--color-azul); color: white; padding: 15px 40px; text-align: center; font-size: 12px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="app-container">
         <div class="controles">
             <div class="control-grupo">
                 <label for="selector-colegio">1. Seleccionar Colegio:</label>
@@ -56,320 +68,298 @@
                 <select id="selector-estudiante" disabled><option value="">-- Consulta primero --</option></select>
             </div>
             <div class="control-grupo">
-                 <button id="btn-pdf-individual" class="btn-secundario" disabled>Descargar PDF</button>
+                 <button id="btn-pdf-individual" disabled>Descargar PDF</button>
             </div>
              <div class="control-grupo">
-                 <button id="btn-pdf-masivo" class="btn-secundario" disabled>Descarga Masiva</button>
+                 <button id="btn-pdf-masivo" disabled>Descarga Masiva</button>
             </div>
             <div id="loader"></div>
         </div>
 
         <div id="informe-container">
-            <header>
-                <h1>INFORME DE ORIENTACIÓN VOCACIONAL</h1>
-                <p>Selecciona un colegio y haz clic en "Consultar" para empezar.</p>
-            </header>
+            <!-- El informe dinámico se renderizará aquí -->
         </div>
     </div>
 
-    <!-- INICIO DEL SCRIPT ACTUALIZADO -->
-<script>
-    // --- CONSTANTES Y SELECTORES GLOBALES ---
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyPofXK90pg18IegH5EAkW4uY3MRs2X3e3IkCCdsIKJ1d_WWMH6EFr-dIvUgbBxYME/exec'; // <-- ¡ASEGÚRATE DE PONER TU URL DE IMPLEMENTACIÓN AQUÍ!
-    const ETIQUETAS_AREAS = ["Ciencias Exactas y Agrarias", "Humanidades y Ciencias Sociales", "Artes", "Ciencias Sociales y Educación", "Ingeniería y Tecnología", "Administración y Negocios"];
-    const ETIQUETAS_CORTAS_GRAFICO = ["Ciencias", "Humanidades", "Artes", "Educación", "Ingeniería", "Administración"];
-    
-    // URL DEL LOGO OFICIAL
-    const LOGO_URL = 'https://github.com/Soportegec/informe-chaside/blob/main/menu-logo%20K.png?raw=true';
-    let LOGO_BASE64 = null; // Se cargará al inicio
+    <script>
+        // --- CONSTANTES Y SELECTORES GLOBALES ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyPofXK90pg18IegH5EAkW4uY3MRs2X3e3IkCCdsIKJ1d_WWMH6EFr-dIvUgbBxYME/exec';
+        const ETIQUETAS_AREAS = ["Ciencias Exactas y Agrarias", "Humanidades y Ciencias Sociales", "Artes", "Ciencias Sociales y Educación", "Ingeniería y Tecnología", "Administración y Negocios"];
+        const ETIQUETAS_CORTAS_GRAFICO = ["Ciencias", "Humanidades", "Artes", "Educación", "Ingeniería", "Administración"];
+        const LOGO_URL = 'https://github.com/Soportegec/informe-chaside/blob/main/menu-logo%20K.png?raw=true';
+        let LOGO_BASE64 = null;
 
-    const selectorColegio = document.getElementById('selector-colegio');
-    const btnConsultar = document.getElementById('btn-consultar');
-    const selectorEstudiante = document.getElementById('selector-estudiante');
-    const informeContainer = document.getElementById('informe-container');
-    const btnPdfIndividual = document.getElementById('btn-pdf-individual');
-    const btnPdfMasivo = document.getElementById('btn-pdf-masivo');
-    const loader = document.getElementById('loader');
+        const selectorColegio = document.getElementById('selector-colegio');
+        const btnConsultar = document.getElementById('btn-consultar');
+        const selectorEstudiante = document.getElementById('selector-estudiante');
+        const informeContainer = document.getElementById('informe-container');
+        const btnPdfIndividual = document.getElementById('btn-pdf-individual');
+        const btnPdfMasivo = document.getElementById('btn-pdf-masivo');
+        const loader = document.getElementById('loader');
 
-    // --- VARIABLES DE ESTADO GLOBAL ---
-    let chartInstance = null;
-    let todosLosDatos = null;
-    let estudiantesFiltrados = [];
+        let chartInstance = null;
+        let todosLosDatos = null;
+        let estudiantesFiltrados = [];
 
-    // --- FUNCIONES AUXILIARES ---
-    function mostrarLoader(mensaje) { loader.textContent = mensaje; }
-    function ocultarLoader() { loader.textContent = ''; }
-    
-    // Función para convertir la URL del logo a Base64 para el PDF
-    async function cargarLogoBase64() {
-        try {
-            const response = await fetch(LOGO_URL);
-            const blob = await response.blob();
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        } catch (error) {
-            console.error("No se pudo cargar el logo:", error);
-            return null;
+        // --- FUNCIONES AUXILIARES ---
+        function mostrarLoader(mensaje) { loader.textContent = mensaje; }
+        function ocultarLoader() { loader.textContent = ''; }
+        
+        async function cargarLogoBase64() {
+            try {
+                const response = await fetch(LOGO_URL);
+                const blob = await response.blob();
+                return new Promise(r => { const reader = new FileReader(); reader.onloadend = () => r(reader.result); reader.readAsDataURL(blob); });
+            } catch (error) { console.error("No se pudo cargar el logo:", error); return null; }
         }
-    }
 
-    // --- LÓGICA DE CARGA Y FILTRADO DE DATOS (Sin cambios mayores) ---
-    async function cargarDatosIniciales() {
-        mostrarLoader('Cargando recursos y datos...');
-        try {
-            // Cargar logo y datos de la API en paralelo para más eficiencia
-            [LOGO_BASE64, todosLosDatos] = await Promise.all([
-                cargarLogoBase64(),
-                fetch(`${API_URL}?endpoint=todo`).then(res => res.json().then(json => {
-                    if (json.error) throw new Error(json.error);
-                    return json.data;
-                }))
-            ]);
+        // --- LÓGICA DE CARGA Y FILTRADO ---
+        async function cargarDatosIniciales() {
+            mostrarLoader('Cargando recursos y datos...');
+            try {
+                [LOGO_BASE64, todosLosDatos] = await Promise.all([
+                    cargarLogoBase64(),
+                    fetch(`${API_URL}?endpoint=todo`).then(res => res.json().then(json => {
+                        if (json.error) throw new Error(json.error);
+                        return json.data;
+                    }))
+                ]);
+                
+                selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>';
+                todosLosDatos.colegios.forEach(colegio => selectorColegio.add(new Option(colegio.nombre, colegio.dane)));
+
+                mostrarLoader('✓ Datos cargados exitosamente');
+                setTimeout(ocultarLoader, 1500);
+            } catch (error) { alert('Error al cargar datos: ' + error.message); ocultarLoader(); }
+        }
+        
+        // --- FUNCIÓN DE RENDERIZADO EN PANTALLA ---
+        function renderizarInformeEnPantalla(estudiante, colegioNombre) {
+            if (chartInstance) chartInstance.destroy();
             
-            selectorColegio.innerHTML = '<option value="">-- Selecciona un Colegio --</option>';
-            todosLosDatos.colegios.forEach(colegio => {
-                selectorColegio.add(new Option(colegio.nombre, colegio.dane));
+            const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
+            
+            const filasTablaHTML = ETIQUETAS_AREAS.map((area, i) => `<tr><td>${area}</td><td>${estudiante.puntuaciones[i]}</td></tr>`).join('');
+            const carrerasHTML = estudiante.carreras.map(carrera => `<li>${carrera}</li>`).join('');
+
+            informeContainer.innerHTML = `
+                <div id="informe-visual">
+                    <header>
+                        <img src="${LOGO_URL}" alt="Logo Grupo Edúcate" class="logo">
+                        <div class="titulo-informe">
+                            <h1>INFORME DE ORIENTACIÓN VOCACIONAL</h1>
+                            <p>Colegio: ${colegioNombre}</p>
+                        </div>
+                    </header>
+                    <section class="info-estudiante">
+                        <div>
+                            <p><strong>Nombre del estudiante:</strong> ${estudiante.nombre}</p>
+                            <p><strong>Correo electrónico:</strong> ${estudiante.correo}</p>
+                        </div>
+                        <div>
+                            <p><strong>DANE Colegio:</strong> ${estudiante.dane}</p>
+                            <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+                        </div>
+                    </section>
+                    <main>
+                        <div class="columna-izquierda">
+                            <table>
+                                <thead><tr><th>Área vocacional</th><th>Puntuación</th></tr></thead>
+                                <tbody>${filasTablaHTML}</tbody>
+                            </table>
+                            <div class="area-dominante">
+                                <div class="seccion-titulo">Tu área vocacional dominante:</div>
+                                <div class="seccion-contenido"><p>Área de mayor interés: <strong>${areaDominante}</strong> (Puntuación: <strong>${estudiante.puntuacionMaxima}</strong> de 50)</p></div>
+                            </div>
+                            <div class="descripcion">
+                                <div class="seccion-titulo">Descripción:</div>
+                                <div class="seccion-contenido"><p>${estudiante.descripcion}</p></div>
+                            </div>
+                        </div>
+                        <div class="columna-derecha">
+                            <div class="grafico-container">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                            <div class="carreras-sugeridas">
+                                <div class="seccion-titulo">Carreras sugeridas:</div>
+                                <div class="seccion-contenido"><ul>${carrerasHTML}</ul></div>
+                            </div>
+                        </div>
+                    </main>
+                    <footer>
+                        En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.
+                    </footer>
+                </div>
+            `;
+            
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ETIQUETAS_CORTAS_GRAFICO,
+                    datasets: [{
+                        data: estudiante.puntuaciones,
+                        fill: true, backgroundColor: 'rgba(30, 58, 95, 0.3)', borderColor: 'rgb(30, 58, 95)', pointBackgroundColor: 'rgb(30, 58, 95)'
+                    }]
+                },
+                options: { maintainAspectRatio: false, animation: false, scales: { r: { suggestedMin: 0, suggestedMax: 50, grid: { color: '#ddd' }, pointLabels: { font: { size: 12, family: 'Montserrat' } } } }, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        // --- MOTOR DE GENERACIÓN DE PDF ---
+        window.jsPDF = window.jspdf.jsPDF;
+
+        function generarPaginaPdf(doc, estudiante, colegioNombre) {
+            const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
+
+            // Header
+            doc.setFillColor('#46B4A8');
+            doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
+            if (LOGO_BASE64) doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50);
+            doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+            doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
+            doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
+
+            // Info Estudiante
+            doc.setTextColor('#333'); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+            doc.text('Nombre del estudiante:', 40, 110); doc.text('Correo electrónico:', 40, 125);
+            doc.text('DANE Colegio:', 550, 110); doc.text('Fecha:', 550, 125);
+            doc.setFont('helvetica', 'normal');
+            doc.text(estudiante.nombre, 180, 110); doc.text(estudiante.correo, 180, 125);
+            doc.text(String(estudiante.dane), 650, 110); doc.text(new Date().toLocaleDateString('es-ES'), 650, 125);
+            
+            // Columna Izquierda
+            const tablaBody = ETIQUETAS_AREAS.map((area, i) => [area, estudiante.puntuaciones[i]]);
+            doc.autoTable({
+                startY: 150, head: [['Área vocacional', 'Puntuación']], body: tablaBody,
+                headStyles: { fillColor: '#1E3A5F', font: 'helvetica', fontStyle: 'bold' },
+                bodyStyles: { font: 'helvetica', fontSize: 10 },
+                columnStyles: { 1: { halign: 'center' } },
+                margin: { left: 40 }, tableWidth: 350
+            });
+            let finalY = doc.autoTable.previous.finalY + 20;
+
+            doc.setFillColor('#1E3A5F'); doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
+            doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+            doc.text('Tu área vocacional dominante:', 50, finalY + 15);
+            doc.setDrawColor('#E0E0E0'); doc.roundedRect(40, finalY + 22, 350, 30, 3, 3, 'D');
+            doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+            doc.text(`Área de mayor interés: `, 50, finalY + 40);
+            doc.setFont('helvetica', 'bold'); doc.text(`${areaDominante} (Puntuación: ${estudiante.puntuacionMaxima} de 50)`, 155, finalY + 40);
+            finalY += 62;
+
+            doc.setFillColor('#1E3A5F'); doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
+            doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+            doc.text('Descripción:', 50, finalY + 15);
+            const descLines = doc.splitTextToSize(estudiante.descripcion, 330);
+            const descHeight = descLines.length * 12 + 15;
+            doc.setDrawColor('#E0E0E0'); doc.roundedRect(40, finalY + 22, 350, descHeight, 3, 3, 'D');
+            doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+            doc.text(descLines, 50, finalY + 37);
+
+            // Columna Derecha
+            const chartImage = chartInstance.toBase64Image('image/jpeg', 0.8);
+            doc.setDrawColor('#E0E0E0'); doc.roundedRect(430, 150, 350, 250, 3, 3, 'D');
+            doc.addImage(chartImage, 'JPEG', 440, 155, 330, 240);
+            
+            let startYCarreras = 430;
+            doc.setFillColor('#1E3A5F'); doc.roundedRect(430, startYCarreras, 350, 22, 3, 3, 'F');
+            doc.setTextColor('white'); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+            doc.text('Carreras sugeridas:', 440, startYCarreras + 15);
+            const carrerasHeight = Math.ceil(estudiante.carreras.length / 2) * 15 + 15;
+            doc.setDrawColor('#E0E0E0'); doc.roundedRect(430, startYCarreras + 22, 350, carrerasHeight, 3, 3, 'D');
+            doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+            estudiante.carreras.forEach((carrera, index) => {
+                const x = (index % 2 === 0) ? 450 : 610;
+                const y = startYCarreras + 40 + Math.floor(index / 2) * 15;
+                doc.text(`• ${carrera}`, x, y);
             });
 
-            mostrarLoader('✓ Datos cargados exitosamente');
-            setTimeout(ocultarLoader, 1500);
-        } catch (error) {
-            alert('Error al cargar datos: ' + error.message);
-            ocultarLoader();
+            // Footer
+            doc.setFillColor('#1E3A5F');
+            doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
+            doc.setTextColor('white'); doc.setFontSize(9);
+            const footerText = "En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.";
+            doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 35, { align: 'center', maxWidth: 700 });
         }
-    }
 
-    function renderizarInformeEnPantalla(estudiante) {
-        // Esta función simplificada solo actualiza el gráfico, que es lo único que necesitamos
-        // para la captura de imagen del PDF. El resto del informe es visual.
-        if (chartInstance) chartInstance.destroy();
-        const canvas = document.createElement('canvas'); // Crear canvas temporal
-        informeContainer.innerHTML = '';
-        informeContainer.appendChild(canvas);
+        // --- EVENTOS DE LA UI ---
+        document.addEventListener('DOMContentLoaded', cargarDatosIniciales);
+        
+        selectorColegio.addEventListener('change', () => {
+            btnConsultar.disabled = !selectorColegio.value;
+            selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>';
+            selectorEstudiante.disabled = true;
+            btnPdfIndividual.disabled = true; btnPdfMasivo.disabled = true;
+            informeContainer.innerHTML = '';
+        });
 
-        chartInstance = new Chart(canvas, {
-            type: 'radar',
-            data: {
-                labels: ETIQUETAS_CORTAS_GRAFICO,
-                datasets: [{
-                    data: estudiante.puntuaciones,
-                    fill: true,
-                    backgroundColor: 'rgba(30, 58, 95, 0.3)',
-                    borderColor: 'rgb(30, 58, 95)',
-                    pointBackgroundColor: 'rgb(30, 58, 95)',
-                }]
-            },
-            options: {
-                animation: false, // Desactivar animación para captura instantánea
-                scales: { r: { suggestedMin: 0, suggestedMax: 50 } },
-                plugins: { legend: { display: false } }
+        btnConsultar.addEventListener('click', () => {
+            const dane = selectorColegio.value;
+            if (!dane) return;
+            estudiantesFiltrados = todosLosDatos.estudiantes.filter(est => est.dane == dane);
+            selectorEstudiante.innerHTML = '<option value="">-- Selecciona un Estudiante --</option>';
+            if (estudiantesFiltrados.length > 0) {
+                estudiantesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre)); // Ordenar alfabéticamente
+                estudiantesFiltrados.forEach(est => selectorEstudiante.add(new Option(est.nombre, est.correo)));
+                selectorEstudiante.disabled = false; btnPdfMasivo.disabled = false;
+            } else {
+                selectorEstudiante.innerHTML = '<option value="">No hay estudiantes</option>';
             }
         });
-    }
-    
-    // --- MOTOR DE GENERACIÓN DE PDF ---
-    window.jsPDF = window.jspdf.jsPDF;
 
-    function generarPaginaPdf(doc, estudiante, colegioNombre) {
-        const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
-
-        // --- DIBUJAR HEADER ---
-        doc.setFillColor('#46B4A8');
-        doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
-        if (LOGO_BASE64) doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50);
-        doc.setTextColor('white');
-        doc.setFont('Montserrat', 'bold');
-        doc.setFontSize(20);
-        doc.text('INFORME DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
-        doc.setFont('Montserrat', 'normal');
-        doc.setFontSize(12);
-        doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
-
-        // --- DIBUJAR INFO ESTUDIANTE ---
-        doc.setTextColor('#333');
-        doc.setFontSize(11);
-        doc.setFont('Montserrat', 'bold');
-        doc.text('Nombre del estudiante:', 40, 110);
-        doc.text('Correo electrónico:', 40, 125);
-        doc.text('DANE Colegio:', 550, 110);
-        doc.text('Fecha:', 550, 125);
-        doc.setFont('Montserrat', 'normal');
-        doc.text(estudiante.nombre, 180, 110);
-        doc.text(estudiante.correo, 180, 125);
-        doc.text(estudiante.dane, 650, 110);
-        doc.text(new Date().toLocaleDateString('es-ES'), 650, 125);
-        
-        // --- COLUMNA IZQUIERDA ---
-        // Tabla de puntuaciones
-        const tablaBody = ETIQUETAS_AREAS.map((area, i) => [area, estudiante.puntuaciones[i]]);
-        doc.autoTable({
-            startY: 150,
-            head: [['Área vocacional', 'Puntuación']],
-            body: tablaBody,
-            headStyles: { fillColor: '#1E3A5F', font: 'Montserrat', fontStyle: 'bold' },
-            bodyStyles: { font: 'Montserrat', fontSize: 10 },
-            columnStyles: { 1: { halign: 'center' } },
-            margin: { left: 40 },
-            tableWidth: 350
+        selectorEstudiante.addEventListener('change', () => {
+            const correo = selectorEstudiante.value;
+            btnPdfIndividual.disabled = !correo;
+            if (correo) {
+                const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
+                const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
+                renderizarInformeEnPantalla(estudiante, colegioNombre);
+            }
         });
 
-        // Titled sections (Área, Descripción)
-        let finalY = doc.autoTable.previous.finalY + 20;
-        doc.setFillColor('#1E3A5F');
-        doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
-        doc.setTextColor('white');
-        doc.setFontSize(12);
-        doc.setFont('Montserrat', 'bold');
-        doc.text('Tu área vocacional dominante:', 50, finalY + 15);
-        
-        doc.setDrawColor('#E0E0E0');
-        doc.roundedRect(40, finalY + 22, 350, 30, 3, 3, 'D');
-        doc.setTextColor('#333');
-        doc.setFont('Montserrat', 'normal');
-        doc.setFontSize(10);
-        doc.text(`Área de mayor interés: `, 50, finalY + 40);
-        doc.setFont('Montserrat', 'bold');
-        doc.text(`${areaDominante} (Puntuación: ${estudiante.puntuacionMaxima} de 50)`, 155, finalY + 40);
-        finalY += 62;
+        btnPdfIndividual.addEventListener('click', async () => {
+            const correo = selectorEstudiante.value;
+            if (!correo) return;
+            mostrarLoader('Generando PDF...');
 
-        doc.setFillColor('#1E3A5F');
-        doc.roundedRect(40, finalY, 350, 22, 3, 3, 'F');
-        doc.setTextColor('white');
-        doc.setFontSize(12);
-        doc.setFont('Montserrat', 'bold');
-        doc.text('Descripción:', 50, finalY + 15);
-
-        doc.setDrawColor('#E0E0E0');
-        const descLines = doc.splitTextToSize(estudiante.descripcion, 330);
-        const descHeight = descLines.length * 12 + 15;
-        doc.roundedRect(40, finalY + 22, 350, descHeight, 3, 3, 'D');
-        doc.setTextColor('#333');
-        doc.setFont('Montserrat', 'normal');
-        doc.setFontSize(10);
-        doc.text(descLines, 50, finalY + 37);
-
-        // --- COLUMNA DERECHA ---
-        // Gráfico
-        const chartImage = chartInstance.toBase64Image('image/jpeg', 0.8);
-        doc.setDrawColor('#E0E0E0');
-        doc.roundedRect(430, 150, 350, 250, 3, 3, 'D');
-        doc.addImage(chartImage, 'JPEG', 440, 155, 330, 240);
-
-        // Carreras sugeridas
-        let startYCarreras = 430;
-        doc.setFillColor('#1E3A5F');
-        doc.roundedRect(430, startYCarreras, 350, 22, 3, 3, 'F');
-        doc.setTextColor('white');
-        doc.setFontSize(12);
-        doc.setFont('Montserrat', 'bold');
-        doc.text('Carreras sugeridas:', 440, startYCarreras + 15);
-
-        doc.setDrawColor('#E0E0E0');
-        const carrerasHeight = Math.ceil(estudiante.carreras.length / 2) * 15 + 15;
-        doc.roundedRect(430, startYCarreras + 22, 350, carrerasHeight, 3, 3, 'D');
-        doc.setTextColor('#333');
-        doc.setFont('Montserrat', 'normal');
-        doc.setFontSize(10);
-        estudiante.carreras.forEach((carrera, index) => {
-            const x = (index % 2 === 0) ? 450 : 610;
-            const y = startYCarreras + 40 + Math.floor(index / 2) * 15;
-            doc.text(`• ${carrera}`, x, y);
-        });
-
-        // --- FOOTER ---
-        doc.setFillColor('#1E3A5F');
-        doc.rect(0, doc.internal.pageSize.getHeight() - 60, doc.internal.pageSize.getWidth(), 60, 'F');
-        doc.setTextColor('white');
-        doc.setFontSize(9);
-        const footerText = "En Grupo Edúcate Colombia creemos que la vocación es el punto de encuentro entre lo que amas y lo que haces bien. Acompañamos a cada estudiante en el descubrimiento de sus fortalezas e intereses, guiándolo hacia un futuro donde pueda crecer con pasión y propósito.";
-        doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 35, { align: 'center', maxWidth: 700 });
-    }
-
-    // --- EVENTOS DE LA UI ---
-    document.addEventListener('DOMContentLoaded', cargarDatosIniciales);
-    
-    selectorColegio.addEventListener('change', () => {
-        btnConsultar.disabled = !selectorColegio.value;
-        selectorEstudiante.innerHTML = '<option value="">-- Consulta primero --</option>';
-        selectorEstudiante.disabled = true;
-        btnPdfIndividual.disabled = true;
-        btnPdfMasivo.disabled = true;
-        informeContainer.innerHTML = '<p>Selecciona un colegio y haz clic en "Consultar" para empezar.</p>';
-    });
-
-    btnConsultar.addEventListener('click', () => {
-        const dane = selectorColegio.value;
-        if (!dane) return;
-        estudiantesFiltrados = todosLosDatos.estudiantes.filter(est => est.dane == dane);
-        
-        selectorEstudiante.innerHTML = '<option value="">-- Selecciona un Estudiante --</option>';
-        if (estudiantesFiltrados.length > 0) {
-            estudiantesFiltrados.forEach(est => selectorEstudiante.add(new Option(est.nombre, est.correo)));
-            selectorEstudiante.disabled = false;
-            btnPdfMasivo.disabled = false;
-        } else {
-            selectorEstudiante.innerHTML = '<option value="">No hay estudiantes</option>';
-        }
-    });
-
-    selectorEstudiante.addEventListener('change', () => {
-        const correo = selectorEstudiante.value;
-        btnPdfIndividual.disabled = !correo;
-        if (correo) {
             const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
-            renderizarInformeEnPantalla(estudiante);
-        }
-    });
-
-    btnPdfIndividual.addEventListener('click', async () => {
-        const correo = selectorEstudiante.value;
-        if (!correo) return;
-        mostrarLoader('Generando PDF...');
-
-        const estudiante = todosLosDatos.estudiantes.find(est => est.correo === correo);
-        const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
-        
-        // Renderizar el gráfico justo antes de generar el PDF
-        renderizarInformeEnPantalla(estudiante);
-        await new Promise(r => setTimeout(r, 100)); // Pausa para el renderizado
-
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
-        generarPaginaPdf(doc, estudiante, colegioNombre);
-        doc.save(`Informe - ${estudiante.nombre}.pdf`);
-        ocultarLoader();
-    });
-
-    btnPdfMasivo.addEventListener('click', async () => {
-        if (estudiantesFiltrados.length === 0) return;
-        if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
-
-        const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
-
-        for (let i = 0; i < estudiantesFiltrados.length; i++) {
-            const estudiante = estudiantesFiltrados[i];
-            mostrarLoader(`Generando PDF masivo (${i + 1}/${estudiantesFiltrados.length})...`);
+            const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
             
-            renderizarInformeEnPantalla(estudiante);
-            await new Promise(r => setTimeout(r, 100));
+            renderizarInformeEnPantalla(estudiante, colegioNombre); // Asegura que el gráfico esté visible para la captura
+            await new Promise(r => setTimeout(r, 150)); // Pausa para el renderizado del gráfico
 
-            if (i > 0) doc.addPage();
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
             generarPaginaPdf(doc, estudiante, colegioNombre);
-        }
+            doc.save(`Informe - ${estudiante.nombre}.pdf`);
+            ocultarLoader();
+        });
 
-        doc.save(`Informes Compilados - ${colegioNombre}.pdf`);
-        ocultarLoader();
-        alert('¡Generación masiva completada!');
-    });
-</script>
-    <!-- FIN DEL SCRIPT ACTUALIZADO -->
+        btnPdfMasivo.addEventListener('click', async () => {
+            if (estudiantesFiltrados.length === 0) return;
+            if (!confirm(`Se generará un PDF con ${estudiantesFiltrados.length} informes. ¿Continuar?`)) return;
+
+            const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+            for (let i = 0; i < estudiantesFiltrados.length; i++) {
+                const estudiante = estudiantesFiltrados[i];
+                mostrarLoader(`Generando PDF masivo (${i + 1}/${estudiantesFiltrados.length})...`);
+                
+                renderizarInformeEnPantalla(estudiante, colegioNombre);
+                await new Promise(r => setTimeout(r, 150)); // Pausa crítica
+
+                if (i > 0) doc.addPage();
+                generarPaginaPdf(doc, estudiante, colegioNombre);
+            }
+
+            doc.save(`Informes Compilados - ${colegioNombre}.pdf`);
+            ocultarLoader();
+            alert('¡Generación masiva completada!');
+        });
+    </script>
 </body>
 </html>
-
-
 
 
