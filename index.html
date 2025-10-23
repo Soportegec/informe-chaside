@@ -271,7 +271,11 @@
 
         async function generarPdfGrupal(doc, datosGrupales, colegioNombre) {
             doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
-            if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 5, 180, 40); }
+            if (LOGO_BASE64) {
+        const logoWidth = 180; // Reducido de 180 a 150
+        const logoHeight = logoWidth * 0.40;
+        doc.addImage(LOGO_BASE64, 'PNG', 40, 5, logoWidth, logoHeight); // Y cambiado de 20 a 15
+        }
             doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
             doc.text('INFORME VOCACIONAL GRUPAL - TEST CHASIDE', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
             doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
@@ -547,5 +551,6 @@
     </script>
 </body>
 </html>
+
 
 
