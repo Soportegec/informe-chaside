@@ -859,8 +859,6 @@
 
 ANÁLISIS DE RESULTADOS:
 • El área dominante del grupo es ${datosCalculadosGrupales.areaMasPopular.nombre}, lo que sugiere una tendencia hacia carreras de este campo.
-• Se observa una distribución [equilibrada/desigual] entre las diferentes áreas vocacionales.
-• Las puntuaciones promedio indican [alto/moderado/bajo] nivel de definición vocacional.
 
 ACCIONES SUGERIDAS:
 1. ORIENTACIÓN FOCALIZADA: Organizar charlas con profesionales del área más popular, programar visitas a universidades con programas en estas áreas, invitar egresados que estudien carreras relacionadas.
@@ -989,7 +987,7 @@ CALENDARIO SUGERIDO:
             const colegioNombre = selectorColegio.options[selectorColegio.selectedIndex].text;
             
             renderizarInformeEnPantalla(estudiante, colegioNombre); 
-            await new Promise(r => setTimeout(r, 200)); 
+            await new Promise(r => setTimeout(r, 150)); 
 
             const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
             await generarPaginaPdf(doc, estudiante, colegioNombre); 
@@ -1052,4 +1050,5 @@ CALENDARIO SUGERIDO:
     </script>
 </body>
 </html>
+
 
