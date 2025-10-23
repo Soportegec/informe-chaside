@@ -195,7 +195,7 @@
         // --- MOTOR DE GENERACIÓN DE PDF INDIVIDUAL ---
         window.jsPDF = window.jspdf.jsPDF;
 
-        function generarPaginaPdf(doc, estudiante, colegioNombre) {
+        async function generarPaginaPdf(doc, estudiante, colegioNombre) {
             const areaDominante = ETIQUETAS_AREAS[estudiante.puntuaciones.indexOf(estudiante.puntuacionMaxima)];
             doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
             if (LOGO_BASE64 && LOGO_BASE64.startsWith('data:')) { // Solo si es Base64
@@ -1020,3 +1020,4 @@ CALENDARIO SUGERIDO:
     </script>
 </body>
 </html>
+
