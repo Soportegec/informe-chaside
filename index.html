@@ -216,6 +216,11 @@
 
             const chartCanvas = document.getElementById('radarChart');
             const ctx = chartCanvas.getContext('2d');
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = 'white'; // Poner fondo blanco para eliminar fondo negro
+            ctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
+            ctx.restore();
             ctx.save(); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = 'white'; ctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height); ctx.restore();
             const chartImage = chartCanvas.toDataURL('image/jpeg', 0.8);
             doc.setDrawColor('#E0E0E0');
@@ -551,6 +556,7 @@
     </script>
 </body>
 </html>
+
 
 
 
