@@ -271,9 +271,9 @@
 
         async function generarPdfGrupal(doc, datosGrupales, colegioNombre) {
             doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
-            if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50); }
+            if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 5, 180, 40); }
             doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-            doc.text('INFORME VOCACIONAL GRUPAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+            doc.text('INFORME VOCACIONAL GRUPAL - TEST CHASIDE', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
             doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
             doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
             doc.text(`Total de Estudiantes Evaluados: ${datosGrupales.totalEstudiantes}`, 40, 110);
@@ -480,7 +480,7 @@
             doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
             if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50); }
             doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-            doc.text('INFORME VOCACIONAL GRUPAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+            doc.text('INFORME VOCACIONAL GRUPAL - TEST CHASIDE', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
             doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
             doc.text(`Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 60, { align: 'right' });
             doc.setTextColor('#333');
@@ -547,4 +547,5 @@
     </script>
 </body>
 </html>
+
 
