@@ -305,6 +305,7 @@
                     datasets: [{ label: 'N° de Estudiantes', data: datosGrupales.distribucion.map(d => d.cantidad), backgroundColor: '#1E3A5F' }]
                 },
                 options: {
+                    backgroundColor: 'transparent',
                     indexAxis: 'y', animation: false, plugins: { legend: { display: false } },
                     scales: {
                         x: { beginAtZero: true, ticks: { precision: 0 } },
@@ -331,7 +332,7 @@
             const radarChart = new Chart(radarCtx, {
                 type: 'radar',
                 data: { labels: ETIQUETAS_CORTAS_GRAFICO, datasets: [{ data: datosGrupales.promedios, fill: true, backgroundColor: 'rgba(30, 58, 95, 0.3)', borderColor: 'rgb(30, 58, 95)' }] },
-                options: { animation: false, scales: { r: { suggestedMin: 0, suggestedMax: 50, pointLabels: { font: { size: 12, family: 'Montserrat' } } } }, plugins: { legend: { display: false } } }
+                options: { backgroundColor: 'transparent', animation: false, scales: { r: { suggestedMin: 0, suggestedMax: 50, pointLabels: { font: { size: 12, family: 'Montserrat' } } } }, plugins: { legend: { display: false } } }
             });
             await new Promise(r => setTimeout(r, 200));
             const radarChartImage = radarCanvas.toDataURL('image/jpeg', 0.8);
@@ -487,7 +488,11 @@
             
             // Header
             doc.setFillColor('#46B4A8'); doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
-            if (LOGO_BASE64) { doc.addImage(LOGO_BASE64, 'PNG', 40, 15, 180, 50); }
+            if (LOGO_BASE64) {
+                const logoWidth = 180; // mismo ancho que el individual
+                const logoHeight = logoWidth * 0.40;
+                doc.addImage(LOGO_BASE64, 'PNG', 40, 5, logoWidth, logoHeight);
+            }
             doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
             doc.text('INFORME VOCACIONAL GRUPAL - TEST CHASIDE', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
             doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
@@ -556,6 +561,7 @@
     </script>
 </body>
 </html>
+
 
 
 
