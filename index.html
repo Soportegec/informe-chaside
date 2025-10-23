@@ -14,10 +14,10 @@
         :root { --color-azul: #1E3A5F; --color-fondo: #F0F2F5; }
         body { font-family: 'Montserrat', sans-serif; margin: 0; background-color: #1E3A5F; color: #333; }
         .app-container { max-width: 1200px; margin: 30px auto; background: white; padding: 25px 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        .controles { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; background-color: var(--color-fondo); border-radius: 8px; margin-bottom: 30px; align-items: flex-end; }
+        .controles { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px; background-color: var(--color-fondo); border-radius: 8px; margin-bottom: 30px; align-items: flex-end; }
         .control-grupo { display: flex; flex-direction: column; }
         .control-grupo label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #555; }
-        select, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; background-color: white; }
+        select, button { padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; background-color: white; }
         button { cursor: pointer; background-color: var(--color-azul); color: white; border: none; font-weight: 600; transition: background-color 0.2s; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         button:hover:not(:disabled) { background-color: #12233a; }
@@ -51,7 +51,7 @@
     </style>
 </head>
 <body>
-    <h1 style="text-align: center; color: #1E3A5F; margin: 30px 0 20px 0; font-size: 28px;">Sistema de Orientación Vocacional - TEST CHASIDE</h1>
+    <h1 style="text-align: center; color: #FFFFFF; margin: 30px 0 20px 0; font-size: 28px;">Sistema de Orientación Vocacional - TEST CHASIDE</h1>
     <div class="app-container">
         <div class="controles">
             <div class="control-grupo"><label for="selector-colegio">1. Seleccionar Colegio:</label><select id="selector-colegio"><option value="">Cargando colegios...</option></select></div>
@@ -547,3 +547,4 @@
     </script>
 </body>
 </html>
+
