@@ -652,9 +652,9 @@
             const chartGap = 15; 
             await drawChartAndAddToPdf('barChart', 'Gráfico: Distribución de Estudiantes por Área Vocacional', 'bar', { labels: datosCalculadosGrupales.distribucionAreasOrdenada.map(d => d.nombre), datasets: [{ label: 'N° de Estudiantes', data: datosCalculadosGrupales.distribucionAreasOrdenada.map(d => d.cantidad), backgroundColor: COLOR_AZUL, borderColor: COLOR_AZUL, borderWidth: 1 }] }, { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { ticks: { font: { size: 9, family: 'Montserrat' } }, grid: { display: false } } }, plugins: { legend: { display: false }, title: { display: false }, tooltip: { enabled: false }, datalabels: { display: true, color: 'black', anchor: 'end', align: 'end', offset: 4, font: { weight: 'bold', size: 8 } } } }, chartX, chartY, chartWidth, chartHeight);
             chartY += chartHeight + chartGap;
-            const pieBackgroundColors = ['#1E3A5F', '#46B4A8', '#A2D9CE', '#7B8D9F', '#C2D4E3', '#4E6A8A'];
+            /*  const pieBackgroundColors = ['#1E3A5F', '#46B4A8', '#A2D9CE', '#7B8D9F', '#C2D4E3', '#4E6A8A'];
             await drawChartAndAddToPdf('pieChart', 'Gráfico: Porcentaje de Estudiantes por Área', 'pie', { labels: ETIQUETAS_CORTAS_GRAFICO, datasets: [{ data: ETIQUETAS_CORTAS.map((areaKey) => datosCalculadosGrupales.distribucionAreas[areaKey].cantidad), backgroundColor: pieBackgroundColors, hoverOffset: 4 }] }, { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Montserrat', size: 9 } } }, title: { display: false }, tooltip: { enabled: false }, datalabels: { display: true, color: 'white', formatter: (value, ctx) => { let sum = 0; let dataArr = ctx.chart.data.datasets[0].data; dataArr.map(data => { sum += data; }); let percentage = (value * 100 / sum).toFixed(0) + '%'; return percentage; }, font: { weight: 'bold', size: 10 }, anchor: 'center', align: 'center', offset: 0 } } }, chartX, chartY, chartWidth, chartHeight);
-            chartY += chartHeight + chartGap;
+            chartY += chartHeight + chartGap; */
             await drawChartAndAddToPdf('radarChart', 'Gráfico: Perfil Vocacional Promedio del Grupo', 'radar', { labels: ETIQUETAS_CORTAS_GRAFICO, datasets: [{ data: datosCalculadosGrupales.promediosAreas, fill: true, backgroundColor: 'rgba(30, 58, 95, 0.3)', borderColor: COLOR_AZUL, pointBackgroundColor: COLOR_AZUL, pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: COLOR_AZUL }] }, { responsive: true, maintainAspectRatio: false, animation: false, scales: { r: { beginAtZero: true, suggestedMin: 0, suggestedMax: 50, grid: { color: COLOR_GRIS_CLARO }, pointLabels: { font: { size: 9, family: 'Montserrat' } } } }, plugins: { legend: { display: false }, title: { display: false }, tooltip: { enabled: false }, datalabels: { display: true, color: 'black', font: { weight: 'bold', size: 8 }, formatter: (value) => value.toFixed(0) } } }, chartX, chartY, chartWidth, chartHeight);
             generateFooter(2, 4);
 
@@ -847,6 +847,7 @@
     </script>
 </body>
 </html>
+
 
 
 
