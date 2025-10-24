@@ -447,7 +447,7 @@
         return;
     }
 
-    // CREAR ARRAY DE DISTRIBUCIÓN PARA GRÁFICOS
+    // Crear array de distribución para gráficos
     const distribucionPorArea = ETIQUETAS_AREAS.map((area, idx) => {
         const areaKey = ETIQUETAS_CORTAS[idx];
         return datosCalculadosGrupales.distribucionAreas[areaKey].cantidad;
@@ -461,294 +461,447 @@
     const COLOR_GRIS_CLARO = '#E0E0E0';
     const COLOR_AMARILLO_CLARO = '#FFFBE6';
     const COLOR_NARANJA_CLARO = '#FFF3E0';
+    const COLOR_PURPURA_CLARO = '#F3E5F5';
+    const COLOR_ROJO_CLARO = '#FFEBEE';
 
-    const generateHeader = (pageNum, totalPages) => {
-        doc.setFillColor(COLOR_AZUL);
-        doc.rect(0, 0, doc.internal.pageSize.getWidth(), 75, 'F');
-        
-        if (LOGO_BASE64 && LOGO_BASE64.length > 100) { 
+    // Colores y etiquetas para los niveles de interés (definidos aquí para que estén en el scope)
+    const levelsLabels = ['Muy Bajo', 'Bajo', 'Moderado', 'Alto', 'Muy Alto']; 
+    const levelsColors = ['#FFCCCC', '#FFFBEB', '#FFF3CD', '#E2F0CB', '#D4EDDA']; 
+
+    const generateHeader = (pageNumber, totalPages) => {
+        doc.setFillColor(COLOR_PRIMARIO_VERDE); 
+        doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, 'F');
+        if (LOGO_BASE64 && LOGO_BASE64.startsWith('data:')) { 
             const logoWidth = 150; 
             const logoHeight = logoWidth * 0.40;
             doc.addImage(LOGO_BASE64, 'PNG', 40, 5, logoWidth, logoHeight); 
         } else { 
-            doc.setTextColor('white'); 
-            doc.setFont('helvetica', 'bold'); 
-            doc.setFontSize(14);
+            doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
             doc.text('GRUPO EDUCATE COLOMBIA', 40, 30);
         }
 
-        doc.setTextColor('white'); 
-        doc.setFont('helvetica', 'bold'); 
-        doc.setFontSize(18);
+        doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
         doc.text('INFORME GRUPAL - ANÁLISIS DE ORIENTACIÓN VOCACIONAL', doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
-        doc.setFont('helvetica', 'normal'); 
-        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
         doc.text(`Test CHASIDE - Colegio: ${colegioNombre}`, doc.internal.pageSize.getWidth() - 40, 55, { align: 'right' });
         doc.text(`Grado: 11° - Año: ${datosCalculadosGrupales.anioActual}`, doc.internal.pageSize.getWidth() - 40, 68, { align: 'right' });
     };
 
-    const generateFooter = (pageNum, totalPages) => {
+    const generateFooter = (pageNumber, totalPages) => {
         doc.setFillColor(COLOR_AZUL);
-        doc.rect(0, doc.internal.pageSize.getHeight() - 30, doc.internal.pageSize.getWidth(), 30, 'F');
-        doc.setTextColor('white');
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.text(`Página ${pageNum} de ${totalPages}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 15, { align: 'center' });
-        doc.text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, doc.internal.pageSize.getWidth() - 40, doc.internal.pageSize.getHeight() - 15, { align: 'right' });
+        doc.rect(0, doc.internal.pageSize.getHeight() - 40, doc.internal.pageSize.getWidth(), 40, 'F');
+        doc.setTextColor('white'); doc.setFontSize(8);
+        const footerText = `Este informe presenta un análisis agregado de las tendencias vocacionales del grupo y no reemplaza la orientación individual de cada estudiante.`;
+        doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 25, { align: 'center', maxWidth: 700 });
+        doc.text(`Página ${pageNumber} de ${totalPages}`, doc.internal.pageSize.getWidth() - 50, doc.internal.pageSize.getHeight() - 25, { align: 'right' });
     };
 
-    // PÁGINA 1: Resumen General
+    const drawChartAndAddToPdf = async (chartId, title, chartType, chartData, chartOptions, positionX, positionY, width, height) => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 700; 
+        tempCanvas.height = 400; 
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        tempCtx.fillStyle = 'white'; 
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+        let chart = new Chart(tempCtx, {
+            type: chartType,
+            data: chartData,
+            options: chartOptions,
+            plugins: [ChartDataLabels]
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 500)); // Tiempo de espera para renderizado de Chart.js
+        
+        const chartImage = tempCanvas.toDataURL('image/jpeg', 0.9);
+        doc.setDrawColor(COLOR_GRIS_CLARO);
+        doc.roundedRect(positionX, positionY, width, height, 3, 3, 'D');
+        doc.addImage(chartImage, 'JPEG', positionX + 5, positionY + 5, width - 10, height - 10);
+
+        doc.setTextColor(COLOR_AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        if (chartId === 'stackedBarChart') {
+            doc.setFontSize(12);
+            doc.text(title, positionX + 10, positionY + 18);
+        } else {
+            doc.setFontSize(10);
+            doc.text(title, positionX + 10, positionY + 15);
+        }
+        
+        chart.destroy(); 
+    };
+
+
+    // --- Página 1: Resumen Ejecutivo y Hallazgos ---
     generateHeader(1, 4);
-    
-    doc.setFillColor(COLOR_AZUL);
-    doc.setTextColor('white');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.rect(40, 95, doc.internal.pageSize.getWidth() - 80, 25, 'F');
-    doc.text('RESUMEN GENERAL', doc.internal.pageSize.getWidth() / 2, 110, { align: 'center' });
+    doc.setTextColor('#333'); doc.setFontSize(12);
 
-    // Cuadros de resumen
-    const cuadroWidth = 150;
-    const cuadroHeight = 70;
-    const espacioEntreCuadros = 20;
-    const inicioX = 40;
-    let yPos = 140;
-
-    const cuadrosResumen = [
-        { titulo: 'Total Estudiantes', valor: datosCalculadosGrupales.totalEstudiantes, color: COLOR_PRIMARIO_VERDE },
-        { titulo: 'Área más popular', valor: datosCalculadosGrupales.areaMasPopular.nombre, color: COLOR_AZUL },
-        { titulo: 'Promedio General', valor: datosCalculadosGrupales.promedioGeneral.toFixed(1), color: COLOR_PRIMARIO_VERDE },
-        { titulo: 'Desviación Estándar', valor: datosCalculadosGrupales.desviacionEstandar.toFixed(2), color: COLOR_AZUL }
-    ];
-
-    cuadrosResumen.forEach((cuadro, idx) => {
-        const xPos = inicioX + (idx * (cuadroWidth + espacioEntreCuadros));
-        doc.setFillColor(cuadro.color);
-        doc.rect(xPos, yPos, cuadroWidth, cuadroHeight, 'F');
-        doc.setTextColor('white');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text(cuadro.titulo, xPos + cuadroWidth / 2, yPos + 25, { align: 'center' });
-        doc.setFontSize(16);
-        doc.text(String(cuadro.valor), xPos + cuadroWidth / 2, yPos + 50, { align: 'center' });
+    // Resumen Ejecutivo
+    let currentY = 100;
+    doc.setFillColor(COLOR_PRIMARIO_VERDE); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
+    doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('RESUMEN EJECUTIVO', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 30;
+    doc.text(`Total de estudiantes evaluados: ${datosCalculadosGrupales.totalEstudiantes}`, 50, currentY);
+    doc.text(`Fecha de aplicación: ${datosCalculadosGrupales.fechaAplicacion}`, 250, currentY);
+    currentY += 15;
+    doc.text(`Estudiantes con área dominante identificada: ${datosCalculadosGrupales.estudiantesConAreaDominante}`, 50, currentY);
+    doc.text(`Tasa de finalización: ${datosCalculadosGrupales.tasaFinalizacion.toFixed(1)}%`, 250, currentY);
+    currentY += 25;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(COLOR_AZUL);
+    doc.text('Estadísticas Básicas de Puntuación', 50, currentY);
+    currentY += 5;
+    doc.autoTable({
+        startY: currentY,
+        head: [['Estadística', 'Valor']],
+        body: [
+            ['Puntuación promedio general', `${datosCalculadosGrupales.promedioGeneral.toFixed(2)} puntos`],
+            ['Puntuación máxima registrada', `${datosCalculadosGrupales.maximaPuntuacionRegistrada} puntos`],
+            ['Puntuación mínima registrada', `${datosCalculadosGrupales.minimaPuntuacionRegistrada} puntos`],
+            ['Desviación estándar', `${datosCalculadosGrupales.desviacionEstandar.toFixed(2)}`]
+        ],
+        headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { font: 'helvetica', fontSize: 8 },
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 80, fontStyle: 'bold', textColor: COLOR_AZUL } },
+        margin: { left: 45, right: 400 },
+        theme: 'grid'
     });
+    currentY = doc.autoTable.previous.finalY + 20;
 
-    // Crear canvas temporal para la gráfica de barras de promedios por área
-    const tempCanvasBarras = document.createElement('canvas');
-    tempCanvasBarras.width = 600;
-    tempCanvasBarras.height = 300;
-    tempCanvasBarras.style.display = 'none';
-    document.body.appendChild(tempCanvasBarras);
 
-    const ctxBarras = tempCanvasBarras.getContext('2d');
-    const chartBarras = new Chart(ctxBarras, {
-        type: 'bar',
-        data: {
-            labels: ETIQUETAS_AREAS,
+    // Hallazgos Principales
+    doc.setFillColor(COLOR_AMARILLO_CLARO); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('HALLAZGOS PRINCIPALES', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 30;
+    doc.text(`• Área dominante más frecuente: ${datosCalculadosGrupales.areaMasPopular.nombre} (${datosCalculadosGrupales.areaMasPopular.cantidad} estudiantes, ${datosCalculadosGrupales.areaMasPopular.porcentaje.toFixed(1)}%).`, 50, currentY);
+    currentY += 15;
+    doc.text(`• Área con mayor interés promedio: ${datosCalculadosGrupales.areaConMayorInteresPromedio.nombre} (${datosCalculadosGrupales.areaConMayorInteresPromedio.puntuacion.toFixed(2)} puntos).`, 50, currentY);
+    currentY += 15;
+    doc.text(`• Puntuación promedio general del grupo: ${datosCalculadosGrupales.promedioGeneral.toFixed(2)} puntos.`, 50, currentY);
+    currentY += 15;
+    doc.text(doc.splitTextToSize(`• El grupo muestra una tendencia hacia áreas de ${datosCalculadosGrupales.areaMasPopular.nombre}, mientras que ${datosCalculadosGrupales.areaMenosPopular.nombre} es la menos explorada.`, doc.internal.pageSize.getWidth() - 100), 50, currentY);
+    currentY += 30;
+
+
+    // TOP 5 de Carreras Más Recomendadas al Grupo
+    doc.setFillColor(COLOR_PRIMARIO_VERDE); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
+    doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('TOP 5 DE CARRERAS MÁS RECOMENDADAS AL GRUPO', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 30;
+    doc.text(`Según el área dominante más frecuente (${datosCalculadosGrupales.areaMasPopular.nombre}), las carreras más sugeridas son:`, 50, currentY);
+    currentY += 10;
+    datosCalculadosGrupales.top5Carreras.forEach((carrera, index) => {
+        doc.text(`${index + 1}. ${carrera}`, 60, currentY + (index * 10));
+    });
+    currentY += (datosCalculadosGrupales.top5Carreras.length * 10) + 10;
+
+    // Acciones Inmediatas Recomendadas (Solo títulos)
+    doc.setFillColor(COLOR_ROJO_CLARO); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('ACCIONES INMEDIATAS RECOMENDADAS', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 30;
+    doc.text(`1. Orientación Focalizada: Organizar charlas con profesionales del área de ${datosCalculadosGrupales.areaMasPopular.nombre} y programar visitas a universidades con programas en estas áreas.`, 50, currentY, { maxWidth: doc.internal.pageSize.getWidth() - 100 });
+    currentY += 20;
+    doc.text(`2. Fortalecimiento de Áreas Minoritarias: Crear espacios de exploración para áreas menos populares (${datosCalculadosGrupales.areaMenosPopular.nombre}) para asegurar una visión completa.`, 50, currentY, { maxWidth: doc.internal.pageSize.getWidth() - 100 });
+    currentY += 20;
+    doc.text(`3. Seguimiento Personalizado: Identificar estudiantes con puntuaciones muy bajas o inconsistentes para sesiones de orientación individual.`, 50, currentY, { maxWidth: doc.internal.pageSize.getWidth() - 100 });
+    currentY += 20;
+
+
+    generateFooter(1, 4);
+
+    // --- Página 2: Distribución de Áreas y Gráficos ---
+    doc.addPage();
+    generateHeader(2, 4);
+    currentY = 100;
+
+    // Distribución por Áreas Vocacionales (Tabla) - COLUMNA IZQUIERDA
+    doc.setFillColor(COLOR_NARANJA_CLARO); doc.roundedRect(40, currentY, 400, 18, 3, 3, 'F');
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    doc.text('DISTRIBUCIÓN DE ESTUDIANTES POR ÁREA VOCACIONAL', 50, currentY + 12);
+    currentY += 25;
+    const tablaDistribucionBody = ETIQUETAS_CORTAS.map((areaKey, i) => {
+        const dist = datosCalculadosGrupales.distribucionAreas[areaKey];
+        return [dist.nombre, dist.cantidad, `${dist.porcentaje.toFixed(1)}%`, dist.puntuacionPromedio.toFixed(2), dist.rango];
+    });
+    tablaDistribucionBody.push(['TOTAL', datosCalculadosGrupales.totalEstudiantes, '100.0%', datosCalculadosGrupales.promedioGeneral.toFixed(2), '-']);
+
+    doc.autoTable({
+        startY: currentY,
+        head: [['Área Vocacional', 'Cantidad', 'Porcentaje', 'Puntuación Promedio', 'Rango']],
+        body: tablaDistribucionBody,
+        headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { font: 'helvetica', fontSize: 8 },
+        columnStyles: { 
+            0: { cellWidth: 110 },
+            1: { cellWidth: 50, halign: 'center' },
+            2: { cellWidth: 50, halign: 'center' },
+            3: { cellWidth: 60, halign: 'center' },
+            4: { cellWidth: 70, halign: 'center' }
+        },
+        margin: { left: 45, right: 400 },
+        theme: 'grid',
+        didDrawCell: data => {
+            if (data.row.section === 'body' && data.row.index === (tablaDistribucionBody.length - 1)) { // Última fila 'TOTAL'
+                doc.setFillColor(COLOR_AZUL);
+                doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                doc.setTextColor('white');
+            }
+        }
+    });
+    currentY = doc.autoTable.previous.finalY + 20;
+
+    // Análisis de Tendencias y Patrones Detallado - COLUMNA IZQUIERDA
+    doc.setFillColor(COLOR_PURPURA_CLARO); doc.roundedRect(40, currentY, 400, 18, 3, 3, 'F');
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    doc.text('ANÁLISIS DE TENDENCIAS Y PATRONES', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 25;
+    doc.text(`Área vocacional más popular: ${datosCalculadosGrupales.areaMasPopular.nombre} (${datosCalculadosGrupales.areaMasPopular.cantidad} estudiantes, ${datosCalculadosGrupales.areaMasPopular.porcentaje.toFixed(1)}%).`, 50, currentY, { maxWidth: 390 });
+    currentY += 15;
+    doc.text(`Área vocacional menos popular: ${datosCalculadosGrupales.areaMenosPopular.nombre} (${datosCalculadosGrupales.areaMenosPopular.cantidad} estudiantes, ${datosCalculadosGrupales.areaMenosPopular.porcentaje.toFixed(1)}%).`, 50, currentY, { maxWidth: 390 });
+    currentY += 15;
+    doc.text(`Área con mayor interés promedio: ${datosCalculadosGrupales.areaConMayorInteresPromedio.nombre} con ${datosCalculadosGrupales.areaConMayorInteresPromedio.puntuacion.toFixed(2)} puntos.`, 50, currentY, { maxWidth: 390 });
+    currentY += 15;
+    doc.text(`Área con menor interés promedio: ${datosCalculadosGrupales.areaConMenorInteresPromedio.nombre} con ${datosCalculadosGrupales.areaConMenorInteresPromedio.puntuacion.toFixed(2)} puntos.`, 50, currentY, { maxWidth: 390 });
+    currentY += 15;
+
+
+    // --- Gráficos - COLUMNA DERECHA ---
+    let chartX = 460;
+    let chartY = 100;
+    const chartWidth = 330;
+    const chartHeight = 150; 
+    const chartGap = 15; 
+
+
+    // Gráfico de Barras: Distribución de Estudiantes por Área Vocacional
+    await drawChartAndAddToPdf(
+        'barChart', 
+        'Gráfico: Distribución de Estudiantes por Área Vocacional', 
+        'bar', 
+        {
+            labels: datosCalculadosGrupales.distribucionAreasOrdenada.map(d => d.nombre),
             datasets: [{
-                label: 'Promedio por Área',
-                data: datosCalculadosGrupales.promediosAreas,
-                backgroundColor: COLOR_PRIMARIO_VERDE,
+                label: 'N° de Estudiantes',
+                data: datosCalculadosGrupales.distribucionAreasOrdenada.map(d => d.cantidad),
+                backgroundColor: COLOR_AZUL,
                 borderColor: COLOR_AZUL,
                 borderWidth: 1
             }]
         },
-        options: {
-            maintainAspectRatio: false,
-            animation: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 50,
-                    ticks: { font: { size: 10 } }
-                },
-                x: {
-                    ticks: { font: { size: 9 } }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                datalabels: {
-                    anchor: 'end',
-                    align: 'top',
-                    formatter: (value) => value.toFixed(1),
-                    font: { size: 9, weight: 'bold' }
-                }
+        {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+            scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { ticks: { font: { size: 9, family: 'Montserrat' } }, grid: { display: false } } },
+            plugins: { 
+                legend: { display: false }, title: { display: false }, tooltip: { enabled: false },
+                datalabels: { display: true, color: 'black', anchor: 'end', align: 'end', offset: 4, font: { weight: 'bold', size: 8 } }
             }
         },
-        plugins: [ChartDataLabels]
-    });
+        chartX, chartY, chartWidth, chartHeight
+    );
+    chartY += chartHeight + chartGap;
 
-    // ESPERAR A QUE EL CANVAS SE RENDERICE COMPLETAMENTE
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const imgBarras = tempCanvasBarras.toDataURL('image/png');
-    doc.addImage(imgBarras, 'PNG', 40, 235, 500, 250);
-    chartBarras.destroy();
-    document.body.removeChild(tempCanvasBarras);
-
-    generateFooter(1, 4);
-
-    // PÁGINA 2: Distribución de Estudiantes
-    doc.addPage();
-    generateHeader(2, 4);
-
-    doc.setFillColor(COLOR_AZUL);
-    doc.setTextColor('white');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.rect(40, 95, doc.internal.pageSize.getWidth() - 80, 25, 'F');
-    doc.text('DISTRIBUCIÓN DE ESTUDIANTES POR ÁREA VOCACIONAL', doc.internal.pageSize.getWidth() / 2, 110, { align: 'center' });
-
-    // *** COMENTADO TEMPORALMENTE: Gráfico de Porcentaje de Estudiantes por Área ***
-    /*
-    const tempCanvasPie = document.createElement('canvas');
-    tempCanvasPie.width = 400;
-    tempCanvasPie.height = 400;
-    tempCanvasPie.style.display = 'none';
-    document.body.appendChild(tempCanvasPie);
-
-    const ctxPie = tempCanvasPie.getContext('2d');
-    const chartPie = new Chart(ctxPie, {
-        type: 'pie',
-        data: {
-            labels: ETIQUETAS_AREAS,
+    // Gráfico Circular: Porcentaje de Estudiantes por Área
+    const pieBackgroundColors = ['#1E3A5F', '#46B4A8', '#A2D9CE', '#7B8D9F', '#C2D4E3', '#4E6A8A'];
+    await drawChartAndAddToPdf(
+        'pieChart', 
+        'Gráfico: Porcentaje de Estudiantes por Área', 
+        'pie', 
+        {
+            labels: ETIQUETAS_CORTAS_GRAFICO,
             datasets: [{
-                data: distribucionPorArea,
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384'],
-                borderWidth: 2,
-                borderColor: '#fff'
+                data: ETIQUETAS_CORTAS.map((areaKey) => datosCalculadosGrupales.distribucionAreas[areaKey].cantidad),
+                backgroundColor: pieBackgroundColors, hoverOffset: 4
             }]
         },
-        options: {
-            maintainAspectRatio: false,
-            animation: false,
+        {
+            responsive: true, maintainAspectRatio: false, animation: false,
             plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { font: { size: 10 } }
-                },
-                datalabels: {
-                    color: '#fff',
-                    font: { size: 11, weight: 'bold' },
-                    formatter: (value, context) => {
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((value / total) * 100).toFixed(1);
-                        return percentage + '%';
-                    }
+                legend: { position: 'right', labels: { font: { family: 'Montserrat', size: 9 } } },
+                title: { display: false }, tooltip: { enabled: false },
+                datalabels: { display: true, color: 'white', formatter: (value, ctx) => {
+                        let sum = 0; let dataArr = ctx.chart.data.datasets[0].data; dataArr.map(data => { sum += data; });
+                        let percentage = (value * 100 / sum).toFixed(0) + '%'; return percentage;
+                    },
+                    font: { weight: 'bold', size: 10 }, anchor: 'center', align: 'center', offset: 0
                 }
             }
         },
-        plugins: [ChartDataLabels]
-    });
+        chartX, chartY, chartWidth, chartHeight
+    );
+    chartY += chartHeight + chartGap;
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Gráfico de Radar: Perfil Vocacional Promedio del Grupo
+    await drawChartAndAddToPdf(
+        'radarChart', 
+        'Gráfico: Perfil Vocacional Promedio del Grupo', 
+        'radar', 
+        {
+            labels: ETIQUETAS_CORTAS_GRAFICO,
+            datasets: [{
+                data: datosCalculadosGrupales.promediosAreas, fill: true, backgroundColor: 'rgba(30, 58, 95, 0.3)', 
+                borderColor: COLOR_AZUL, pointBackgroundColor: COLOR_AZUL, pointBorderColor: '#fff', 
+                pointHoverBackgroundColor: '#fff', pointHoverBorderColor: COLOR_AZUL
+            }]
+        },
+        {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            scales: { r: { beginAtZero: true, suggestedMin: 0, suggestedMax: 50, grid: { color: COLOR_GRIS_CLARO }, pointLabels: { font: { size: 9, family: 'Montserrat' } } } },
+            plugins: {
+                legend: { display: false }, title: { display: false }, tooltip: { enabled: false },
+                datalabels: { display: true, color: 'black', font: { weight: 'bold', size: 8 }, formatter: (value) => value.toFixed(0) }
+            }
+        },
+        chartX, chartY, chartWidth, chartHeight
+    );
 
-    const imgPie = tempCanvasPie.toDataURL('image/png');
-    doc.addImage(imgPie, 'PNG', 150, 140, 350, 350);
-    chartPie.destroy();
-    document.body.removeChild(tempCanvasPie);
-    */
-
-    // Tabla alternativa mientras está comentado el gráfico
-    doc.autoTable({
-        startY: 140,
-        head: [['Área Vocacional', 'N° Estudiantes', 'Porcentaje']],
-        body: ETIQUETAS_AREAS.map((area, idx) => {
-            const numEstudiantes = distribucionPorArea[idx];
-            const porcentaje = ((numEstudiantes / datosCalculadosGrupales.totalEstudiantes) * 100).toFixed(1);
-            return [area, numEstudiantes, porcentaje + '%'];
-        }),
-        headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 10 },
-        bodyStyles: { font: 'helvetica', fontSize: 9 },
-        alternateRowStyles: { fillColor: COLOR_GRIS_CLARO },
-        margin: { left: 200, right: 200 },
-        theme: 'grid'
-    });
 
     generateFooter(2, 4);
 
-    // PÁGINA 3: Análisis Detallado
+    // --- Página 3: Niveles de Interés y Recomendaciones Institucionales ---
     doc.addPage();
     generateHeader(3, 4);
+    currentY = 100;
 
-    doc.setFillColor(COLOR_AZUL);
-    doc.setTextColor('white');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.rect(40, 95, doc.internal.pageSize.getWidth() - 80, 25, 'F');
-    doc.text('ANÁLISIS DETALLADO', doc.internal.pageSize.getWidth() / 2, 110, { align: 'center' });
+    // COLUMNA IZQUIERDA: Tabla Distribución por Niveles de Interés
+    const leftColX = 40;
+    const pageContentWidth = doc.internal.pageSize.getWidth() - 80; // Ancho total disponible menos márgenes
+    const colGap = 20; // Espacio entre columnas
+    const leftColWidth = (pageContentWidth - colGap) / 2; // Ancho para cada columna
+    const rightColX = leftColX + leftColWidth + colGap;
+    const rightColWidth = leftColWidth;
 
-    yPos = 140;
-    doc.setTextColor(COLOR_AZUL);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('Área Vocacional Más Popular:', 45, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`${datosCalculadosGrupales.areaMasPopular.nombre} con ${datosCalculadosGrupales.areaMasPopular.cantidad} estudiantes (${datosCalculadosGrupales.areaMasPopular.porcentaje.toFixed(1)}%)`, 45, yPos + 15);
+    doc.setFillColor(COLOR_AMARILLO_CLARO); doc.roundedRect(leftColX, currentY, leftColWidth, 18, 3, 3, 'F');
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    doc.text('DISTRIBUCIÓN POR NIVELES DE INTERÉS', leftColX + 10, currentY + 12);
+    let tableLevelsY = currentY + 25;
 
-    yPos += 40;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('Área con Mayor Promedio:', 45, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`${datosCalculadosGrupales.areaConMayorInteresPromedio.nombre} con promedio de ${datosCalculadosGrupales.areaConMayorInteresPromedio.puntuacion.toFixed(1)} puntos`, 45, yPos + 15);
-
-    yPos += 40;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('Área con Menor Interés:', 45, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`${datosCalculadosGrupales.areaConMenorInteresPromedio.nombre} con promedio de ${datosCalculadosGrupales.areaConMenorInteresPromedio.puntuacion.toFixed(1)} puntos`, 45, yPos + 15);
-
-    yPos += 50;
-    doc.setFillColor(COLOR_AZUL);
-    doc.setTextColor('white');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.rect(40, yPos - 5, doc.internal.pageSize.getWidth() - 80, 20, 'F');
-    doc.text('TOP 5 CARRERAS MÁS SUGERIDAS', doc.internal.pageSize.getWidth() / 2, yPos + 8, { align: 'center' });
-
-    yPos += 35;
-    doc.setTextColor(COLOR_AZUL);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    datosCalculadosGrupales.top5Carreras.forEach((carrera, idx) => {
-        doc.text(`${idx + 1}. ${carrera}`, 45, yPos);
-        yPos += 20;
+    const nivelesInteresHead = [['Área', 'Muy Alto (40-50)', 'Alto (30-39)', 'Moderado (20-29)', 'Bajo (10-19)', 'Muy Bajo (0-9)']];
+    const nivelesInteresBody = ETIQUETAS_CORTAS_GRAFICO.map(areaName => {
+        const levels = datosCalculadosGrupales.nivelesInteres[areaName];
+        return [areaName, levels['Muy Alto'], levels['Alto'], levels['Moderado'], levels['Bajo'], levels['Muy Bajo']];
     });
+    doc.autoTable({
+        startY: tableLevelsY,
+        head: nivelesInteresHead,
+        body: nivelesInteresBody,
+        headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 8, halign: 'center' },
+        bodyStyles: { font: 'helvetica', fontSize: 8, halign: 'center' },
+        columnStyles: { 
+            0: { cellWidth: leftColWidth * 0.2 }, // Ancho relativo
+            1: { cellWidth: leftColWidth * 0.16 }, 
+            2: { cellWidth: leftColWidth * 0.16 }, 
+            3: { cellWidth: leftColWidth * 0.16 }, 
+            4: { cellWidth: leftColWidth * 0.16 }, 
+            5: { cellWidth: leftColWidth * 0.16 }  
+        }, 
+        margin: { left: leftColX + 5, right: doc.internal.pageSize.getWidth() - (leftColX + leftColWidth - 5) },
+        tableWidth: leftColWidth - 10, 
+        theme: 'grid',
+        didParseCell: (data) => { 
+            if (data.section === 'body' && data.column.index > 0) {
+                const value = data.cell.raw;
+                if (value >= 40) data.cell.styles.fillColor = '#D4EDDA'; 
+                else if (value >= 30) data.cell.styles.fillColor = '#E2F0CB'; 
+                else if (value >= 20) data.cell.styles.fillColor = '#FFF3CD'; 
+                else if (value >= 10) data.cell.styles.fillColor = '#FFFBEB'; 
+                else if (value >= 0) data.cell.styles.fillColor = '#FFCCCC'; 
+            }
+        }
+    });
+    let finalYTableLevels = doc.autoTable.previous.finalY;
+
+    // COLUMNA DERECHA: Gráfico de Barras Apiladas
+    const stackedBarChartHeight = finalYTableLevels - currentY + 50; // Ajustar altura para que coincida con la tabla o un poco más
+    await drawChartAndAddToPdf(
+        'stackedBarChart', 
+        'GRÁFICO: DISTRIBUCIÓN DE NIVELES DE INTERÉS POR ÁREA', 
+        'bar', 
+        {
+            labels: ETIQUETAS_CORTAS_GRAFICO,
+            datasets: levelsLabels.map((level, levelIndex) => ({
+                label: level,
+                data: ETIQUETAS_CORTAS_GRAFICO.map(areaName => datosCalculadosGrupales.nivelesInteres[areaName][level]),
+                backgroundColor: levelsColors[levelIndex],
+                borderColor: 'white',
+                borderWidth: 1
+            }))
+        },
+        {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            scales: {
+                x: { stacked: true, ticks: { font: { size: 9, family: 'Montserrat' } }, grid: { display: false } },
+                y: { stacked: true, beginAtZero: true, title: { display: true, text: 'N° de Estudiantes', font: { size: 9, family: 'Montserrat' } },
+                     ticks: { precision: 0, stepSize: 5, max: Math.max(35, datosCalculadosGrupales.totalEstudiantes + 5) }, 
+                     grid: { color: COLOR_GRIS_CLARO }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 9, family: 'Montserrat' }, boxWidth: 10 } },
+                title: { display: false }, tooltip: { enabled: false },
+                datalabels: { display: true, color: 'black', font: { size: 7 }, formatter: (value) => value > 0 ? value.toFixed(0) : '', anchor: 'center', align: 'center' }
+            }
+        },
+        rightColX, currentY, rightColWidth, stackedBarChartHeight 
+    );
+    // currentY no se actualiza aquí, se usa la altura de la tabla para el inicio de las recomendaciones.
+
+
+    // Recomendaciones Institucionales (Comienza debajo de la columna más larga)
+    currentY = Math.max(finalYTableLevels, currentY + stackedBarChartHeight) + 20; // 20pt margin
+    doc.setFillColor(COLOR_ROJO_CLARO); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('RECOMENDACIONES PARA LA INSTITUCIÓN', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 25;
+
+    const recomendacionesText = `Basado en los resultados del grupo, se recomienda:\n\nANÁLISIS DE RESULTADOS:\n• El área dominante del grupo es ${datosCalculadosGrupales.areaMasPopular.nombre}, lo que sugiere una tendencia hacia carreras de este campo.\n\nACCIONES SUGERIDAS:\n1. ORIENTACIÓN FOCALIZADA: Organizar charlas con profesionales del área más popular, programar visitas a universidades con programas en estas áreas, invitar egresados que estudien carreras relacionadas.\n2. FORTALECIMIENTO DE ÁREAS MINORITARIAS: Crear espacios de exploración para áreas menos populares, considerar que algunos estudiantes pueden necesitar más información, organizar ferias vocacionales que muestren diversidad de opciones.\n3. SEGUIMIENTO PERSONALIZADO: Programar sesiones individuales con estudiantes indecisos, identificar estudiantes con puntuaciones muy bajas en todas las áreas, crear grupos de orientación según áreas de interés.\n4. ARTICULACIÓN CON CURRÍCULO: Fortalecer asignaturas relacionadas con áreas populares, ofrecer electivas que permitan explorar diferentes campos, vincular proyectos académicos con carreras profesionales.\n5. ALIANZAS ESTRATÉGICAS: Establecer convenios con universidades en áreas de mayor demanda, coordinar visitas académicas y jornadas de inmersión, conseguir material informativo actualizado sobre carreras.\n6. INFORMACIÓN A PADRES: Socializar resultados en reunión de padres, proporcionar guías sobre cómo apoyar la decisión vocacional, ofrecer espacios de consulta familiar.\n\nCALENDARIO SUGERIDO:\n• Semana 1-2: Socialización de resultados individuales\n• Semana 3-4: Charlas con profesionales por áreas\n• Mes 2: Visitas universitarias\n• Mes 3: Feria vocacional institucional\n• Permanente: Seguimiento individual y grupal`;
+    
+    const recomendacionesLines = doc.splitTextToSize(recomendacionesText, doc.internal.pageSize.getWidth() - 100);
+    doc.text(recomendacionesLines, 50, currentY);
+
 
     generateFooter(3, 4);
 
-    // PÁGINA 4: Tabla de Promedios
+    // --- Página 4: Listado de Estudiantes por Área Dominante ---
     doc.addPage();
     generateHeader(4, 4);
+    currentY = 100;
 
-    doc.setFillColor(COLOR_AZUL);
-    doc.setTextColor('white');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.rect(40, 95, doc.internal.pageSize.getWidth() - 80, 25, 'F');
-    doc.text('PROMEDIOS DETALLADOS POR ÁREA VOCACIONAL', doc.internal.pageSize.getWidth() / 2, 110, { align: 'center' });
+    // Listado de Estudiantes por Área Dominante
+    doc.setFillColor(COLOR_AZUL); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
+    doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('LISTADO DE ESTUDIANTES POR ÁREA DOMINANTE', 50, currentY + 12);
+    doc.setTextColor('#333'); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    currentY += 25;
+
+    const estudiantesAgrupados = ETIQUETAS_CORTAS.reduce((acc, areaKey) => {
+        acc[areaKey] = estudiantesFiltrados.filter(e => e.areaDominanteCorta === areaKey).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        return acc;
+    }, {});
+
+    let listBody = [];
+    ETIQUETAS_CORTAS.forEach((areaKey, i) => {
+        const areaNombreLargo = ETIQUETAS_AREAS[i];
+        const estudiantesEnArea = estudiantesAgrupados[areaKey];
+        if (estudiantesEnArea && estudiantesEnArea.length > 0) {
+            listBody.push([{ content: `${areaNombreLargo} (${estudiantesEnArea.length} estudiantes)`, colSpan: 3, styles: { fillColor: COLOR_GRIS_CLARO, fontStyle: 'bold', textColor: '#333' } }]);
+            estudiantesEnArea.forEach(est => {
+                listBody.push(['', est.nombre, est.puntuacionMaxima]);
+            });
+        }
+    });
 
     doc.autoTable({
-        startY: 140,
-        head: [['Área Vocacional', 'Descripción', 'Promedio']],
-        body: ETIQUETAS_AREAS.map((area, idx) => {
-            const descripciones = {
-                'Ciencias': 'Física, Química, Matemáticas',
-                'Humanidades': 'Literatura, Filosofía, Historia',
-                'Arte': 'Música, Pintura, Diseño',
-                'Social': 'Trabajo Social, Psicología',
-                'Ingeniero': 'Ingeniería, Tecnología',
-                'Deportes': 'Educación Física, Entrenamiento',
-                'Ejecutivo': 'Administración, Negocios'
-            };
-            return [area, descripciones[area] || '-', datosCalculadosGrupales.promediosAreas[idx].toFixed(2)];
-        }),
+        startY: currentY,
+        head: [['Área Dominante', 'Nombre del Estudiante', 'Puntuación Máxima']],
+        body: listBody,
         headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 8 },
         bodyStyles: { font: 'helvetica', fontSize: 8 },
         columnStyles: { 
@@ -760,6 +913,7 @@
         tableWidth: 'wrap', 
         theme: 'grid'
     });
+
 
     generateFooter(4, 4);
 
@@ -882,6 +1036,7 @@
     </script>
 </body>
 </html>
+
 
 
 
