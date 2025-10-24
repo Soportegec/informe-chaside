@@ -491,20 +491,48 @@
             };
 
             const drawChartAndAddToPdf = async (chartId, title, chartType, chartData, chartOptions, positionX, positionY, width, height) => {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 700; 
-                tempCanvas.height = 400; 
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                tempCtx.fillStyle = 'white'; 
-                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 700; 
+            tempCanvas.height = 400; 
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCtx.fillStyle = 'white'; 
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-                let chart = new Chart(tempCtx, {
-                    type: chartType,
-                    data: chartData,
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
+            // 1. Creamos la instancia del gráfico
+            let chart = new Chart(tempCtx, {
+                type: chartType,
+                data: chartData,
+                options: chartOptions,
+                plugins: [ChartDataLabels]
+            });
+            
+            // 2. Usamos una Promise con setTimeout para forzar una espera de 1000ms
+            const chartImage = await new Promise(resolve => {
+                setTimeout(() => {
+                    // 3. DESPUÉS de la espera, capturamos la imagen
+                    const url = tempCanvas.toDataURL('image/jpeg', 0.9);
+                    resolve(url); // Y resolvemos la promesa con la imagen
+                }, 1000); // <-- Aquí está el tiempo de espera de 1 segundo que pediste
+            });
+            
+            // 4. Con la imagen ya capturada, la añadimos al PDF
+            doc.setDrawColor(COLOR_GRIS_CLARO);
+            doc.roundedRect(positionX, positionY, width, height, 3, 3, 'D');
+            doc.addImage(chartImage, 'JPEG', positionX + 5, positionY + 5, width - 10, height - 10);
+
+            doc.setTextColor(COLOR_AZUL); doc.setFont('helvetica', 'bold');
+            if (chartId === 'stackedBarChart') {
+                doc.setFontSize(12);
+                doc.text(title, positionX + 10, positionY + 18);
+            } else {
+                doc.setFontSize(10);
+                doc.text(title, positionX + 10, positionY + 15);
+            }
+            
+            // 5. Limpiamos la instancia del gráfico para liberar memoria
+            chart.destroy(); 
+        };
                 
                 await new Promise(resolve => setTimeout(resolve, 200)); // Tiempo de espera para renderizado de Chart.js
                 
@@ -1050,6 +1078,7 @@ CALENDARIO SUGERIDO:
     </script>
 </body>
 </html>
+
 
 
 
