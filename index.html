@@ -512,7 +512,7 @@
             plugins: [ChartDataLabels]
         });
         
-        await new Promise(resolve => setTimeout(resolve, 500)); // Tiempo de espera para renderizado de Chart.js
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Tiempo de espera para renderizado de Chart.js
         
         const chartImage = tempCanvas.toDataURL('image/jpeg', 0.9);
         doc.setDrawColor(COLOR_GRIS_CLARO);
@@ -1036,6 +1036,7 @@
     </script>
 </body>
 </html>
+
 
 
 
