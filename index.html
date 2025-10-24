@@ -447,6 +447,12 @@
         return;
     }
 
+    // CREAR ARRAY DE DISTRIBUCIÓN PARA GRÁFICOS
+    const distribucionPorArea = ETIQUETAS_AREAS.map((area, idx) => {
+        const areaKey = ETIQUETAS_CORTAS[idx];
+        return datosCalculadosGrupales.distribucionAreas[areaKey].cantidad;
+    });
+
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
     
     // Constantes de color para el PDF
@@ -608,7 +614,7 @@
         data: {
             labels: ETIQUETAS_AREAS,
             datasets: [{
-                data: datosCalculadosGrupales.distribucionPorArea,
+                data: distribucionPorArea,
                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384'],
                 borderWidth: 2,
                 borderColor: '#fff'
@@ -649,7 +655,7 @@
         startY: 140,
         head: [['Área Vocacional', 'N° Estudiantes', 'Porcentaje']],
         body: ETIQUETAS_AREAS.map((area, idx) => {
-            const numEstudiantes = datosCalculadosGrupales.distribucionPorArea[idx];
+            const numEstudiantes = distribucionPorArea[idx];
             const porcentaje = ((numEstudiantes / datosCalculadosGrupales.totalEstudiantes) * 100).toFixed(1);
             return [area, numEstudiantes, porcentaje + '%'];
         }),
@@ -680,7 +686,7 @@
     doc.text('Área Vocacional Más Popular:', 45, yPos);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`${datosCalculadosGrupales.areaMasPopular.nombre} con ${datosCalculadosGrupales.areaMasPopular.cantidad} estudiantes (${datosCalculadosGrupales.areaMasPopular.porcentaje}%)`, 45, yPos + 15);
+    doc.text(`${datosCalculadosGrupales.areaMasPopular.nombre} con ${datosCalculadosGrupales.areaMasPopular.cantidad} estudiantes (${datosCalculadosGrupales.areaMasPopular.porcentaje.toFixed(1)}%)`, 45, yPos + 15);
 
     yPos += 40;
     doc.setFont('helvetica', 'bold');
@@ -688,7 +694,7 @@
     doc.text('Área con Mayor Promedio:', 45, yPos);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`${datosCalculadosGrupales.areaMayorPromedio.nombre} con promedio de ${datosCalculadosGrupales.areaMayorPromedio.puntuacion.toFixed(1)} puntos`, 45, yPos + 15);
+    doc.text(`${datosCalculadosGrupales.areaConMayorInteresPromedio.nombre} con promedio de ${datosCalculadosGrupales.areaConMayorInteresPromedio.puntuacion.toFixed(1)} puntos`, 45, yPos + 15);
 
     yPos += 40;
     doc.setFont('helvetica', 'bold');
@@ -696,7 +702,7 @@
     doc.text('Área con Menor Interés:', 45, yPos);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`${datosCalculadosGrupales.areaMenorPromedio.nombre} con promedio de ${datosCalculadosGrupales.areaMenorPromedio.puntuacion.toFixed(1)} puntos`, 45, yPos + 15);
+    doc.text(`${datosCalculadosGrupales.areaConMenorInteresPromedio.nombre} con promedio de ${datosCalculadosGrupales.areaConMenorInteresPromedio.puntuacion.toFixed(1)} puntos`, 45, yPos + 15);
 
     yPos += 50;
     doc.setFillColor(COLOR_AZUL);
@@ -876,6 +882,7 @@
     </script>
 </body>
 </html>
+
 
 
 
