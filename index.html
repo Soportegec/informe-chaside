@@ -621,14 +621,8 @@
                 body: tablaDistribucionBody,
                 headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 8 },
                 bodyStyles: { font: 'helvetica', fontSize: 8 },
-                columnStyles: { 
-                    0: { cellWidth: 105 }, // <-- CAMBIO AQUÍ (Reducido de 110 a 105)
-                    1: { cellWidth: 50, halign: 'center' },
-                    2: { cellWidth: 50, halign: 'center' },
-                    3: { cellWidth: 60, halign: 'center' },
-                    4: { cellWidth: 70, halign: 'center' }
-                },
-                margin: { left: 45, right: 400 },
+                tableWidth: 340, // <-- LÍNEA NUEVA
+                margin: { left: 45 }, // <-- LÍNEA MODIFICADA
                 theme: 'grid',
                 didDrawCell: data => {
                     if (data.row.section === 'body' && data.row.index === (tablaDistribucionBody.length - 1)) {
@@ -853,6 +847,7 @@
     </script>
 </body>
 </html>
+
 
 
 
