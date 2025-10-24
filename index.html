@@ -458,7 +458,7 @@
             const COLOR_PURPURA_CLARO = '#F3E5F5';
             const COLOR_ROJO_CLARO = '#FFEBEE';
 
-            // Colores y etiquetas para los niveles de interés (definidos aquí para que estén en el scope)
+            // Colores y etiquetas para los niveles de interés
             const levelsLabels = ['Muy Bajo', 'Bajo', 'Moderado', 'Alto', 'Muy Alto']; 
             const levelsColors = ['#FFCCCC', '#FFFBEB', '#FFF3CD', '#E2F0CB', '#D4EDDA']; 
 
@@ -490,30 +490,65 @@
                 doc.text(`Página ${pageNumber} de ${totalPages}`, doc.internal.pageSize.getWidth() - 50, doc.internal.pageSize.getHeight() - 25, { align: 'right' });
             };
 
-            const drawChartAndAddToPdf = async (chartId, title, chartType, chartData, chartOptions, positionX, positionY, width, height) => {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 700; 
-                tempCanvas.height = 400; 
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                tempCtx.fillStyle = 'white'; 
-                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            // --- INICIO DE LA SECCIÓN CORREGIDA ---
 
-                let chart = new Chart(tempCtx, {
-                    type: chartType,
-                    data: chartData,
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
+            /**
+             * NUEVA FUNCIÓN AUXILIAR - Exclusiva para el informe grupal
+             * Genera una imagen de un gráfico de forma fiable esperando a que se complete el renderizado.
+             * @returns {Promise<string>} Una promesa que se resuelve con la imagen del gráfico en formato DataURL (Base64).
+             */
+            async function generarImagenGraficoGrupal(chartType, chartData, chartOptions) {
+                return new Promise((resolve) => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = 700;
+                    tempCanvas.height = 400;
+                    const tempCtx = tempCanvas.getContext('2d');
+
+                    // Dibuja un fondo blanco para evitar transparencias o fondos negros en el JPEG.
+                    tempCtx.fillStyle = 'white';
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                    // La clave: Usamos el callback onComplete para garantizar que el gráfico está dibujado.
+                    const optionsConCallback = {
+                        ...chartOptions,
+                        animation: {
+                            ...chartOptions.animation,
+                            onComplete: (animation) => {
+                                const chartInstance = animation.chart;
+                                // Pequeño retardo para asegurar que el último ciclo de dibujado del navegador ha finalizado.
+                                setTimeout(() => {
+                                    const url = chartInstance.toBase64Image('image/jpeg', 0.9);
+                                    chartInstance.destroy(); // Muy importante para liberar memoria
+                                    resolve(url); // La promesa se resuelve aquí, con la imagen lista.
+                                }, 50);
+                            }
+                        }
+                    };
+
+                    new Chart(tempCtx, {
+                        type: chartType,
+                        data: chartData,
+                        options: optionsConCallback,
+                        plugins: [ChartDataLabels]
+                    });
                 });
+            }
+
+            /**
+             * FUNCIÓN MODIFICADA - Ahora usa el generador de imágenes fiable.
+             * Dibuja un gráfico en el PDF obteniendo primero la imagen de forma segura.
+             */
+            const drawChartAndAddToPdf = async (chartId, title, chartType, chartData, chartOptions, positionX, positionY, width, height) => {
+                // 1. Llama a la nueva función robusta y espera a que la imagen del gráfico esté lista.
+                const chartImage = await generarImagenGraficoGrupal(chartType, chartData, chartOptions);
                 
-                await new Promise(resolve => setTimeout(resolve, 200)); // Tiempo de espera para renderizado de Chart.js
-                
-                const chartImage = tempCanvas.toDataURL('image/jpeg', 0.9);
+                // 2. Dibuja el contenedor y la imagen en el PDF.
                 doc.setDrawColor(COLOR_GRIS_CLARO);
                 doc.roundedRect(positionX, positionY, width, height, 3, 3, 'D');
                 doc.addImage(chartImage, 'JPEG', positionX + 5, positionY + 5, width - 10, height - 10);
 
-                doc.setTextColor(COLOR_AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+                // 3. Dibuja el título del gráfico.
+                doc.setTextColor(COLOR_AZUL); doc.setFont('helvetica', 'bold');
                 if (chartId === 'stackedBarChart') {
                     doc.setFontSize(12);
                     doc.text(title, positionX + 10, positionY + 18);
@@ -521,9 +556,9 @@
                     doc.setFontSize(10);
                     doc.text(title, positionX + 10, positionY + 15);
                 }
-                
-                chart.destroy(); 
             };
+
+            // --- FIN DE LA SECCIÓN CORREGIDA ---
 
 
             // --- Página 1: Resumen Ejecutivo y Hallazgos ---
@@ -593,7 +628,7 @@
             });
             currentY += (datosCalculadosGrupales.top5Carreras.length * 10) + 10;
 
-            // Acciones Inmediatas Recomendadas (Solo títulos)
+            // Acciones Inmediatas Recomendadas
             doc.setFillColor(COLOR_ROJO_CLARO); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
             doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
             doc.text('ACCIONES INMEDIATAS RECOMENDADAS', 50, currentY + 12);
@@ -604,9 +639,7 @@
             doc.text(`2. Fortalecimiento de Áreas Minoritarias: Crear espacios de exploración para áreas menos populares (${datosCalculadosGrupales.areaMenosPopular.nombre}) para asegurar una visión completa.`, 50, currentY, { maxWidth: doc.internal.pageSize.getWidth() - 100 });
             currentY += 20;
             doc.text(`3. Seguimiento Personalizado: Identificar estudiantes con puntuaciones muy bajas o inconsistentes para sesiones de orientación individual.`, 50, currentY, { maxWidth: doc.internal.pageSize.getWidth() - 100 });
-            currentY += 20;
-
-
+            
             generateFooter(1, 4);
 
             // --- Página 2: Distribución de Áreas y Gráficos ---
@@ -641,7 +674,7 @@
                 margin: { left: 45, right: 400 },
                 theme: 'grid',
                 didDrawCell: data => {
-                    if (data.row.section === 'body' && data.row.index === (tablaDistribucionBody.length - 1)) { // Última fila 'TOTAL'
+                    if (data.row.section === 'body' && data.row.index === (tablaDistribucionBody.length - 1)) {
                         doc.setFillColor(COLOR_AZUL);
                         doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
                         doc.setTextColor('white');
@@ -663,8 +696,6 @@
             doc.text(`Área con mayor interés promedio: ${datosCalculadosGrupales.areaConMayorInteresPromedio.nombre} con ${datosCalculadosGrupales.areaConMayorInteresPromedio.puntuacion.toFixed(2)} puntos.`, 50, currentY, { maxWidth: 390 });
             currentY += 15;
             doc.text(`Área con menor interés promedio: ${datosCalculadosGrupales.areaConMenorInteresPromedio.nombre} con ${datosCalculadosGrupales.areaConMenorInteresPromedio.puntuacion.toFixed(2)} puntos.`, 50, currentY, { maxWidth: 390 });
-            currentY += 15;
-
 
             // --- Gráficos - COLUMNA DERECHA ---
             let chartX = 460;
@@ -672,7 +703,6 @@
             const chartWidth = 330;
             const chartHeight = 150; 
             const chartGap = 15; 
-
 
             // Gráfico de Barras: Distribución de Estudiantes por Área Vocacional
             await drawChartAndAddToPdf(
@@ -755,7 +785,6 @@
                 chartX, chartY, chartWidth, chartHeight
             );
 
-
             generateFooter(2, 4);
 
             // --- Página 3: Niveles de Interés y Recomendaciones Institucionales ---
@@ -763,11 +792,10 @@
             generateHeader(3, 4);
             currentY = 100;
 
-            // COLUMNA IZQUIERDA: Tabla Distribución por Niveles de Interés
             const leftColX = 40;
-            const pageContentWidth = doc.internal.pageSize.getWidth() - 80; // Ancho total disponible menos márgenes
-            const colGap = 20; // Espacio entre columnas
-            const leftColWidth = (pageContentWidth - colGap) / 2; // Ancho para cada columna
+            const pageContentWidth = doc.internal.pageSize.getWidth() - 80;
+            const colGap = 20;
+            const leftColWidth = (pageContentWidth - colGap) / 2;
             const rightColX = leftColX + leftColWidth + colGap;
             const rightColWidth = leftColWidth;
 
@@ -788,7 +816,7 @@
                 headStyles: { fillColor: COLOR_AZUL, font: 'helvetica', fontStyle: 'bold', fontSize: 8, halign: 'center' },
                 bodyStyles: { font: 'helvetica', fontSize: 8, halign: 'center' },
                 columnStyles: { 
-                    0: { cellWidth: leftColWidth * 0.2 }, // Ancho relativo
+                    0: { cellWidth: leftColWidth * 0.2 }, 
                     1: { cellWidth: leftColWidth * 0.16 }, 
                     2: { cellWidth: leftColWidth * 0.16 }, 
                     3: { cellWidth: leftColWidth * 0.16 }, 
@@ -800,19 +828,21 @@
                 theme: 'grid',
                 didParseCell: (data) => { 
                     if (data.section === 'body' && data.column.index > 0) {
-                        const value = data.cell.raw;
-                        if (value >= 40) data.cell.styles.fillColor = '#D4EDDA'; 
-                        else if (value >= 30) data.cell.styles.fillColor = '#E2F0CB'; 
-                        else if (value >= 20) data.cell.styles.fillColor = '#FFF3CD'; 
-                        else if (value >= 10) data.cell.styles.fillColor = '#FFFBEB'; 
-                        else if (value >= 0) data.cell.styles.fillColor = '#FFCCCC'; 
+                        const value = parseInt(data.cell.raw, 10);
+                        if (value >= 0) { // Simple check to avoid errors on non-numeric cells
+                           const percentage = (value / datosCalculadosGrupales.totalEstudiantes) * 100;
+                           if (percentage >= 40) data.cell.styles.fillColor = '#D4EDDA';
+                           else if (percentage >= 30) data.cell.styles.fillColor = '#E2F0CB';
+                           else if (percentage >= 20) data.cell.styles.fillColor = '#FFF3CD';
+                           else if (percentage >= 10) data.cell.styles.fillColor = '#FFFBEB';
+                           else data.cell.styles.fillColor = '#FFCCCC';
+                        }
                     }
                 }
             });
             let finalYTableLevels = doc.autoTable.previous.finalY;
 
-            // COLUMNA DERECHA: Gráfico de Barras Apiladas
-            const stackedBarChartHeight = finalYTableLevels - currentY + 50; // Ajustar altura para que coincida con la tabla o un poco más
+            const stackedBarChartHeight = finalYTableLevels - currentY + 50;
             await drawChartAndAddToPdf(
                 'stackedBarChart', 
                 'GRÁFICO: DISTRIBUCIÓN DE NIVELES DE INTERÉS POR ÁREA', 
@@ -844,11 +874,8 @@
                 },
                 rightColX, currentY, rightColWidth, stackedBarChartHeight 
             );
-            // currentY no se actualiza aquí, se usa la altura de la tabla para el inicio de las recomendaciones.
 
-
-            // Recomendaciones Institucionales (Comienza debajo de la columna más larga)
-            currentY = Math.max(finalYTableLevels, currentY + stackedBarChartHeight) + 20; // 20pt margin
+            currentY = Math.max(finalYTableLevels, currentY + stackedBarChartHeight) + 20;
             doc.setFillColor(COLOR_ROJO_CLARO); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
             doc.setTextColor('#333'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
             doc.text('RECOMENDACIONES PARA LA INSTITUCIÓN', 50, currentY + 12);
@@ -878,7 +905,6 @@ CALENDARIO SUGERIDO:
             const recomendacionesLines = doc.splitTextToSize(recomendacionesText, doc.internal.pageSize.getWidth() - 100);
             doc.text(recomendacionesLines, 50, currentY);
 
-
             generateFooter(3, 4);
 
             // --- Página 4: Listado de Estudiantes por Área Dominante ---
@@ -886,7 +912,6 @@ CALENDARIO SUGERIDO:
             generateHeader(4, 4);
             currentY = 100;
 
-            // Listado de Estudiantes por Área Dominante
             doc.setFillColor(COLOR_AZUL); doc.roundedRect(40, currentY, doc.internal.pageSize.getWidth() - 80, 18, 3, 3, 'F');
             doc.setTextColor('white'); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
             doc.text('LISTADO DE ESTUDIANTES POR ÁREA DOMINANTE', 50, currentY + 12);
@@ -925,7 +950,6 @@ CALENDARIO SUGERIDO:
                 tableWidth: 'wrap', 
                 theme: 'grid'
             });
-
 
             generateFooter(4, 4);
 
@@ -1050,6 +1074,7 @@ CALENDARIO SUGERIDO:
     </script>
 </body>
 </html>
+
 
 
 
